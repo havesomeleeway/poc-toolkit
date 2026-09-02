@@ -43,34 +43,53 @@ export async function run(argv) {
     process.exit(staticOk ? 0 : 1);
   }
 
-  head(`drive: ${existsSync(flowPath) ? rel(flowPath) : 'no flow.json — page-load check only'}`);
   const { runFlow } = await import('./cdp-runner.mjs');
   const flow = existsSync(flowPath)
     ? JSON.parse(readFileSync(flowPath, 'utf8'))
     : { url: file, steps: [{ expectNoConsoleErrors: true }], a11y: false };
   if (!existsSync(flowPath)) flow.url = file;
+  const flowDir = existsSync(flowPath) ? dirname(flowPath) : process.cwd();
 
-  const { results, consoleErrors, artifacts } = await runFlow(flow, {
-    chromePath: chrome,
-    flowDir: existsSync(flowPath) ? dirname(flowPath) : process.cwd(),
-    outDir: resolve(process.cwd(), 'out'),
-  });
+  async function runPass(label, flowForPass, outDir) {
+    head(label);
+    const { results, consoleErrors, artifacts } = await runFlow(flowForPass, {
+      chromePath: chrome,
+      flowDir,
+      outDir,
+    });
 
-  // Flow steps + console errors are the gate. The a11y smoke is advisory only.
-  let driveOk = true;
-  for (const r of results) {
-    const isA11y = r.name.startsWith('a11y:');
-    if (r.pass) ok(r.name);
-    else if (isA11y) warn(`${r.name}${r.detail ? ' — ' + r.detail : ''}  (advisory)`);
-    else { fail(`${r.name}${r.detail ? ' — ' + r.detail : ''}`); driveOk = false; }
+    // Flow steps + console errors are the gate. The a11y smoke is advisory only.
+    let passOk = true;
+    for (const r of results) {
+      const isA11y = r.name.startsWith('a11y:');
+      if (r.pass) ok(r.name);
+      else if (isA11y) warn(`${r.name}${r.detail ? ' — ' + r.detail : ''}  (advisory)`);
+      else { fail(`${r.name}${r.detail ? ' — ' + r.detail : ''}`); passOk = false; }
+    }
+    head(`console errors: ${consoleErrors.length}`);
+    for (const e of consoleErrors) fail(e);
+    if (consoleErrors.length) passOk = false;
+
+    if (artifacts.length) {
+      head('artifacts');
+      for (const a of artifacts) info(rel(a));
+    }
+    return passOk;
   }
-  head(`console errors: ${consoleErrors.length}`);
-  for (const e of consoleErrors) fail(e);
-  if (consoleErrors.length) driveOk = false;
 
-  if (artifacts.length) {
-    head('artifacts');
-    for (const a of artifacts) info(rel(a));
+  const desktopLabel = existsSync(flowPath) ? rel(flowPath) : 'no flow.json — page-load check only';
+  let driveOk = await runPass(`drive: ${desktopLabel}`, flow, resolve(process.cwd(), 'out'));
+
+  const mobileEnabled = flow.mobileCheck !== false;
+  if (mobileEnabled) {
+    const mobileViewport = flow.mobileViewport || [375, 812];
+    const mobileFlow = { ...flow, viewport: mobileViewport };
+    const mobileOk = await runPass(
+      `drive: ${desktopLabel} @${mobileViewport[0]}px`,
+      mobileFlow,
+      resolve(process.cwd(), 'out', 'mobile'),
+    );
+    driveOk = driveOk && mobileOk;
   }
 
   head(staticOk && driveOk ? 'PASS' : 'FAIL');

@@ -13,6 +13,14 @@
     },
     "settleMs": { "type": "number", "description": "Pause after load before the first step." },
     "a11y": { "type": "boolean", "description": "Run the accessibility smoke pass at the end." },
+    "mobileCheck": {
+      "type": "boolean",
+      "description": "Re-run the whole flow at a narrow viewport (default: true, i.e. on unless set to false)."
+    },
+    "mobileViewport": {
+      "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2,
+      "description": "[width, height] for the narrow-viewport pass. Default [375, 812]."
+    },
     "steps": { "type": "array", "items": { "$ref": "#/definitions/step" } }
   },
   "definitions": {
