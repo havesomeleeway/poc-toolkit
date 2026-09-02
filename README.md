@@ -30,7 +30,7 @@ MIT — take it, adopt it, adapt it.
 ## Quick start (CLI)
 
 ```bash
-npm install -g poc-kit          # (until published: cd cli && npm install && npm link)
+npm install -g poc-kit
 
 # in a working directory for the build:
 poc-kit init .
@@ -49,7 +49,7 @@ install one). Without it, it runs the static checks and prints `DEGRADED`.
 
 Point your Claude Code plugin config at `claude/` in this repo (it contains
 `.claude-plugin/plugin.json`, the `interactive-poc` skill, and the `/interactive-poc` command).
-Ensure `poc-kit` is on `PATH` (`cd cli && npm link`).
+Ensure `poc-kit` is on `PATH` (`npm install -g poc-kit`).
 
 ## Wire up Copilot
 
