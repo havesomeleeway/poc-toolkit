@@ -4,9 +4,10 @@
 // Plus an optional a11y smoke pass when flow.a11y is true.
 
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { resolve, dirname, isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { tmpdir } from 'node:os';
 import net from 'node:net';
 import CDP from 'chrome-remote-interface';
 
@@ -28,7 +29,7 @@ async function freePort(start = 9222) {
 export async function runFlow(flow, { chromePath, flowDir = process.cwd(), outDir = resolve(process.cwd(), 'out') }) {
   mkdirSync(outDir, { recursive: true });
   const port = await freePort();
-  const userDir = resolve(outDir, `.chrome-${Date.now()}`);
+  const userDir = resolve(tmpdir(), `poc-kit-chrome-${process.pid}-${Date.now()}`);
   // Containers / CI usually need --no-sandbox --disable-dev-shm-usage; pass them via
   // POC_KIT_CHROME_FLAGS rather than baking assumptions in.
   const extraFlags = (process.env.POC_KIT_CHROME_FLAGS || '').split(/\s+/).filter(Boolean);
@@ -140,6 +141,7 @@ export async function runFlow(flow, { chromePath, flowDir = process.cwd(), outDi
   } finally {
     if (client) { try { await client.close(); } catch {} }
     proc.kill();
+    try { rmSync(userDir, { recursive: true, force: true }); } catch {}
   }
 
   return { results, consoleErrors, artifacts };
