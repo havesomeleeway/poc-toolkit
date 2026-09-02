@@ -21,4 +21,5 @@ When asked for an interactive demo, POC, pitch prototype, or clickable mockup fr
 - A build is done only when `poc-kit verify` prints `PASS` (zero console errors) and `HANDOFF.md`
   is filled in.
 
-Full method: `poc-toolkit/METHOD.md`. Reusable prompt: `.github/prompts/interactive-poc.prompt.md`.
+Full method: <https://github.com/havesomeleeway/poc-toolkit/blob/main/METHOD.md>.
+Reusable prompt: `.github/prompts/interactive-poc.prompt.md`.
