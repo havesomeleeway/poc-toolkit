@@ -45,11 +45,21 @@ poc-kit handoff                       # HANDOFF.md skeleton
 `poc-kit verify` needs a Chrome/Chromium binary for the interaction flow (set `CHROME_PATH` or
 install one). Without it, it runs the static checks and prints `DEGRADED`.
 
-## Install the Claude Code plugin
+## Use it from Claude Code
 
-Point your Claude Code plugin config at `claude/` in this repo (it contains
-`.claude-plugin/plugin.json`, the `interactive-poc` skill, and the `/interactive-poc` command).
-Ensure `poc-kit` is on `PATH` (`npm install -g poc-kit`).
+```bash
+npm install -g poc-kit
+bash claude/install-skill.sh     # copies the skill + /interactive-poc into ~/.claude
+```
+
+Then open a **new** Claude Code session anywhere and run `/interactive-poc` (or just ask for "an
+interactive POC of `<doc>`" — the skill self-triggers).
+
+`install-skill.sh` installs into `~/.claude/skills/` and `~/.claude/commands/`; set
+`CLAUDE_SKILLS_DIR` / `CLAUDE_COMMANDS_DIR` to override. Re-run it to update after a `git pull`.
+
+*(Team distribution: package `claude/` as a plugin — it has `.claude-plugin/plugin.json` — and
+install it from this repo instead.)*
 
 ## Wire up Copilot
 

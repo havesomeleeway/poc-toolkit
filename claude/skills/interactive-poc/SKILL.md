@@ -10,9 +10,10 @@ description: >-
 
 # interactive-poc
 
-Follow `METHOD.md` at the repo root (`../../../METHOD.md` from this file). It is the source of
-truth; this skill is a thin driver. The deterministic work is done by the **`poc-kit`** CLI
-(`cli/` in this repo, or `npx poc-kit`).
+Follow **`METHOD.md`** — the canonical method. Find it next to this file, three levels up
+(`../../../METHOD.md`) in the `poc-toolkit` repo, or at
+<https://github.com/havesomeleeway/poc-toolkit/blob/main/METHOD.md>. This skill is a thin driver;
+the deterministic work is the **`poc-kit`** CLI (`npm install -g poc-kit`, then `poc-kit …`).
 
 The toolkit supplies process, scaffolding and checks only. **The prototype's screens,
 interactions, mocked logic and any export path come entirely from the requirement and the user's
