@@ -47,19 +47,40 @@ install one). Without it, it runs the static checks and prints `DEGRADED`.
 
 ## Use it from Claude Code
 
+First, the CLI (needed either way):
+
 ```bash
 npm install -g poc-kit
-bash claude/install-skill.sh     # copies the skill + /interactive-poc into ~/.claude
 ```
 
-Then open a **new** Claude Code session anywhere and run `/interactive-poc` (or just ask for "an
-interactive POC of `<doc>`" — the skill self-triggers).
+Then get the skill in, by **one** of these:
 
-`install-skill.sh` installs into `~/.claude/skills/` and `~/.claude/commands/`; set
-`CLAUDE_SKILLS_DIR` / `CLAUDE_COMMANDS_DIR` to override. Re-run it to update after a `git pull`.
+**A. Plugin from GitHub (no clone).** In Claude Code:
 
-*(Team distribution: package `claude/` as a plugin — it has `.claude-plugin/plugin.json` — and
-install it from this repo instead.)*
+```
+/plugin marketplace add havesomeleeway/poc-toolkit
+/plugin install interactive-poc@poc-toolkit
+```
+
+`/plugin marketplace update poc-toolkit` pulls later changes.
+
+**B. Personal install from a local clone.**
+
+```bash
+bash claude/install-skill.sh        # copies skill + /interactive-poc into ~/.claude
+```
+
+Re-run after `git pull` to update. Override paths with `CLAUDE_SKILLS_DIR` / `CLAUDE_COMMANDS_DIR`.
+
+**C. Symlink a local clone** (auto-updates with `git pull`, nothing to re-run):
+
+```bash
+ln -s "$PWD/claude/skills/interactive-poc" ~/.claude/skills/interactive-poc
+ln -s "$PWD/claude/commands/interactive-poc.md" ~/.claude/commands/interactive-poc.md
+```
+
+Then open a **new** Claude Code session and run `/interactive-poc` (or just ask for "an interactive
+POC of `<doc>`" — the skill self-triggers).
 
 ## Wire up Copilot
 

@@ -1,0 +1,14 @@
+{
+  "name": "poc-toolkit",
+  "owner": {
+    "name": "havesomeleeway",
+    "url": "https://github.com/havesomeleeway"
+  },
+  "plugins": [
+    {
+      "name": "interactive-poc",
+      "source": "./claude",
+      "description": "Build one self-contained, offline, clickable HTML prototype of a single slice of a requirement — real design system, mocked logic, verified by driving it in a headless browser. Needs the `poc-kit` CLI (npm i -g poc-kit)."
+    }
+  ]
+}
