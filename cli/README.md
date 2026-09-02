@@ -45,6 +45,8 @@ poc-kit handoff
 ## Env
 
 - `CHROME_PATH` — path to a Chrome/Chromium binary.
+- `POC_KIT_CHROME_FLAGS` — extra Chrome flags (containers/CI usually need
+  `"--no-sandbox --disable-dev-shm-usage"`).
 - `POC_KIT_NO_CHROME=1` — force the static-only (`DEGRADED`) path.
 - `POC_KIT_DEBUG=1` — full stack traces on error.
 

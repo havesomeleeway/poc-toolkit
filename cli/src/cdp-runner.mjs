@@ -29,10 +29,13 @@ export async function runFlow(flow, { chromePath, flowDir = process.cwd(), outDi
   mkdirSync(outDir, { recursive: true });
   const port = await freePort();
   const userDir = resolve(outDir, `.chrome-${Date.now()}`);
+  // Containers / CI usually need --no-sandbox --disable-dev-shm-usage; pass them via
+  // POC_KIT_CHROME_FLAGS rather than baking assumptions in.
+  const extraFlags = (process.env.POC_KIT_CHROME_FLAGS || '').split(/\s+/).filter(Boolean);
   const proc = spawn(chromePath, [
     '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
     '--hide-scrollbars', `--remote-debugging-port=${port}`, `--user-data-dir=${userDir}`,
-    'about:blank',
+    ...extraFlags, 'about:blank',
   ], { stdio: 'ignore' });
 
   const results = [];
