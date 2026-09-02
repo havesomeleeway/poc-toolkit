@@ -82,19 +82,77 @@ ln -s "$PWD/claude/commands/interactive-poc.md" ~/.claude/commands/interactive-p
 Then open a **new** Claude Code session and run `/interactive-poc` (or just ask for "an interactive
 POC of `<doc>`" — the skill self-triggers).
 
-## Wire up Copilot
+## Use it from GitHub Copilot (VS Code)
 
-From the repo where you want `/interactive-poc`, with `poc-kit` installed:
+There's no "extension" to install — you add a **prompt file** to a project (or your VS Code
+profile) and make the **`poc-kit`** CLI runnable. Two paths: do it yourself, or have the Copilot
+agent do it.
 
-```bash
-poc-kit copilot-init
+**Prerequisites**
+
+- VS Code with the **GitHub Copilot** and **GitHub Copilot Chat** extensions.
+- **Node 18+** (`node --version`).
+- A **Chrome / Chromium** binary — only for `poc-kit verify`'s browser check; it degrades to
+  static checks without one.
+
+### Option 1 — let the Copilot agent set it up
+
+Open **Copilot Chat**, set the mode dropdown (top of the chat box) to **Agent**, and send:
+
+> Install the poc-kit CLI globally with `npm install -g poc-kit`, then run `poc-kit copilot-init`
+> in this repo. Then tell me how to use `/interactive-poc`.
+
+Approve the terminal commands when it asks. Reload the window afterwards
+(**Cmd/Ctrl+Shift+P → Developer: Reload Window**) so the new prompt file is picked up.
+
+### Option 2 — do it yourself
+
+1. **Install the CLI** (in VS Code's terminal — **Terminal → New Terminal**):
+
+   ```bash
+   npm install -g poc-kit
+   ```
+
+2. **Add the command to your project** — from the project root:
+
+   ```bash
+   poc-kit copilot-init
+   ```
+
+   This writes `.github/prompts/interactive-poc.prompt.md` and creates/updates
+   `.github/copilot-instructions.md`. Commit both so your team gets `/interactive-poc` too.
+
+   *Want it in every project instead of one?* **Cmd/Ctrl+Shift+P → Chat: New Prompt File →
+   User**, name it `interactive-poc`, and paste in
+   [`cli/templates/copilot/interactive-poc.prompt.md`](./cli/templates/copilot/interactive-poc.prompt.md).
+
+3. **Reload the window** so VS Code registers the prompt file.
+
+### Run it
+
+In **Copilot Chat**, set the mode to **Agent**, then type:
+
+```
+/interactive-poc
 ```
 
-That writes `.github/prompts/interactive-poc.prompt.md` and creates/updates
-`.github/copilot-instructions.md`. In Copilot Chat (**Agent** mode) type `/interactive-poc`.
+Give it the requirement (a file path or pasted text), the design system (npm name / CSS URL /
+`none`), and the audience + time budget. It proposes a plan → you confirm → it builds
+`prototype.html` and verifies it. To find the output: right-click `prototype.html` in the Explorer
+→ **Open with Live Preview**, or **Download** and open it in a browser.
 
-For peers who don't use a terminal, see **[poc-toolkit-starter](https://github.com/havesomeleeway/poc-toolkit-starter)**
-— a one-click GitHub template with everything pre-wired for Codespaces.
+### If it doesn't work
+
+| Symptom | Fix |
+|---|---|
+| `/interactive-poc` isn't offered | Mode must be **Agent** (not Ask/Edit). Reload the window. Check the setting `chat.promptFiles` is on. |
+| `poc-kit: command not found` when Copilot runs it | `npm install -g poc-kit`; open a fresh terminal so `PATH` refreshes. |
+| `verify` prints `DEGRADED` | No Chrome found — install Chrome/Chromium or set `CHROME_PATH`. Static checks still run. |
+| Copilot's build has an error it won't fix | Paste the `poc-kit verify` output back to it — the prompt tells it to fix its own build. |
+
+For teammates who don't use a terminal at all, see
+**[poc-toolkit-starter](https://github.com/havesomeleeway/poc-toolkit-starter)** — a one-click
+GitHub template with Node, Chrome and `poc-kit` pre-wired for Codespaces.
 
 ## What you provide per build
 
