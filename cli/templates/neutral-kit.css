@@ -3,6 +3,9 @@
   system is supplied (poc-kit add-ds --none). It is deliberately plain: enough to
   make a POC legible, nothing that reads as a house style. If you have a design
   system, use it instead.
+
+  Page-container width is owned by .pk-wrapper (vendor/layout.css), applied to
+  #app in the scaffold — this file doesn't set its own container width.
 */
 :root {
   --nk-bg: #ffffff;
@@ -30,7 +33,7 @@ h1, h2, h3 { line-height: 1.25; margin: 0 0 0.5em; }
 p { margin: 0 0 1em; }
 a { color: var(--nk-accent); }
 
-main { max-width: 960px; margin: 0 auto; padding: calc(var(--nk-space) * 1.5); }
+main { padding-top: calc(var(--nk-space) * 1.5); padding-bottom: calc(var(--nk-space) * 1.5); }
 .screen { animation: nk-fade .15s ease-out; }
 @keyframes nk-fade { from { opacity: 0 } to { opacity: 1 } }
 

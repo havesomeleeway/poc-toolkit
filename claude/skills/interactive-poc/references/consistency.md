@@ -22,8 +22,12 @@ design system is silent and the use case has no opinion, pick something sensible
 - **"Illustrative" labelling** — one consistent way of marking mocked numbers/data as not real.
 - **Empty and error states** — at least acknowledge them; don't only build the happy path if the
   requirement implies others.
+- **Structural composition** — which `.pk-*` primitive (`vendor/layout.css`) covers which
+  recurring structural role (e.g. "form rows use `.pk-switcher`", "the actions row uses
+  `.pk-cluster`") — pick once, use the same one everywhere that role recurs.
 
 ## Not in scope for a POC
 
-Bespoke components, animation systems, responsive breakpoints beyond "doesn't break on a laptop",
-theming. If the requirement seems to need these, it's probably past POC stage.
+Bespoke components, animation systems, bespoke responsive breakpoint systems beyond what the
+layout primitives already handle fluidly, theming. If the requirement seems to need these, it's
+probably past POC stage.

@@ -72,6 +72,12 @@ Fill `prototype.src.html` with exactly the screens and behaviours the slice need
 requirement does not ask for. The skeleton's `showScreen()` / `[hidden]` router and `data-nav`
 convention are there to extend; replace them if the flow needs something else.
 
+`vendor/layout.css` ships with every scaffold and supplies structural composition primitives —
+`.pk-wrapper`, `.pk-flow`, `.pk-cluster`, `.pk-repel`, `.pk-switcher`, `.pk-sidebar`, `.pk-grid`
+(see that file's header comments for each one's custom properties). Compose screen structure with
+these instead of inventing ad hoc inline flex/grid — they exist precisely so structure doesn't
+have to be improvised per build.
+
 ```
 poc-kit build         # inlines vendor/* into the markers -> prototype.html, then lints offline
 ```
@@ -92,9 +98,12 @@ How much logic exists, and how much of it is shown on screen, is set by the requ
 
 ## 7. Let the design system lead
 
-The chosen design system's own guidance decides layout, navigation, status treatment, primary
-actions, and any export styling. Where it is silent **and** the use case has no opinion, pick a
-sensible default and note it in `HANDOFF.md`.
+The chosen design system's own guidance decides visual style — color, type, spacing scale,
+component look — navigation, status treatment, primary actions, and any export styling. If it also
+has its own opinion on a layout (its own grid system, its own container), let it lead there too.
+Where it is silent on **structure**, use the `.pk-*` primitives from `vendor/layout.css` (step 5)
+rather than improvising. Where it's silent on something else entirely and the use case has no
+opinion either, pick a sensible default and note it in `HANDOFF.md`.
 
 `references/consistency.md` is a checklist of decisions to **make once and keep consistent across
 screens** (primary-action placement, how state is shown, keyboard/focus behaviour, whether the

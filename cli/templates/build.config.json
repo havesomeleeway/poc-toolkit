@@ -2,6 +2,7 @@
   "src": "prototype.src.html",
   "out": "prototype.html",
   "markers": {
+    "/*__LAYOUT_CSS__*/": "vendor/layout.css",
     "/*__FONT_CSS__*/": "vendor/font.css",
     "/*__DS_CSS__*/": "vendor/ds.css"
   }

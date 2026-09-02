@@ -1,0 +1,175 @@
+/*
+  poc-kit layout harness — structural composition primitives, present in every
+  build regardless of which design system (or none) is chosen. Structure only:
+  no color, type, spacing scale, or component look — those come entirely from
+  the design system or the neutral kit. If the design system has its own
+  opinion on a given layout (its own grid system, its own container), let it
+  lead there; use these primitives to fill the gaps it's silent on.
+
+  Adapted from the CUBE CSS "compositions", MIT licensed:
+  https://github.com/Set-Creative-Studio/cube-boilerplate/tree/main/src/css/compositions
+  See also https://every-layout.dev and https://cube.fyi/composition.
+  Classes and custom properties below are renamed with a pk- prefix to avoid
+  colliding with class names or custom properties defined by a vendored
+  design system.
+*/
+
+/*
+WRAPPER
+A common page/section container. Fluid by default (clamps between 16rem and
+80rem) rather than snapping to a fixed pixel width.
+
+CUSTOM PROPERTIES AND CONFIGURATION
+--pk-gutter (1rem): space between the container edge and its content.
+--pk-wrapper-max-width (100vw): cap the container's width. The clamp() still
+  bounds it between 16rem and 80rem regardless of what's passed here.
+*/
+.pk-wrapper {
+  margin-inline: auto;
+  max-width: clamp(16rem, var(--pk-wrapper-max-width, 100vw), 80rem);
+  padding-left: var(--pk-gutter, 1rem);
+  padding-right: var(--pk-gutter, 1rem);
+  position: relative;
+}
+
+/*
+FLOW
+Consistent vertical rhythm between sibling elements, without wrapping them
+in extra boxes. Apply to any container whose direct children should have
+even spacing (a screen body, a form, a card's contents).
+
+CUSTOM PROPERTIES AND CONFIGURATION
+--pk-flow-space (1em): space above every element after the first.
+*/
+.pk-flow > * + * {
+  margin-top: var(--pk-flow-space, 1em);
+}
+
+/*
+CLUSTER
+Distributes items with consistent spacing regardless of their size, wrapping
+as needed. Good for button groups, tag lists, toolbars.
+
+CUSTOM PROPERTIES AND CONFIGURATION
+--pk-gutter (var(--pk-space-s-m)): space between each item.
+--pk-cluster-horizontal-alignment (flex-start): horizontal alignment.
+--pk-cluster-vertical-alignment (center): vertical alignment.
+*/
+.pk-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pk-gutter, var(--pk-space-s-m));
+  justify-content: var(--pk-cluster-horizontal-alignment, flex-start);
+  align-items: var(--pk-cluster-vertical-alignment, center);
+}
+
+/*
+REPEL
+Pushes items to opposite ends where there's room, and stacks them on small
+viewports. Good for a header row (title + actions) or a toolbar.
+
+CUSTOM PROPERTIES AND CONFIGURATION
+--pk-gutter (var(--pk-space-s-m)): space between each item.
+--pk-repel-vertical-alignment (center): vertical alignment.
+
+EXCEPTIONS
+.pk-repel[data-nowrap]: never stack, even on small viewports.
+*/
+.pk-repel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: var(--pk-repel-vertical-alignment, center);
+  gap: var(--pk-gutter, var(--pk-space-s-m));
+}
+.pk-repel[data-nowrap] {
+  flex-wrap: nowrap;
+}
+
+/*
+SWITCHER
+Lays exactly two items side by side until there isn't enough horizontal
+space, then stacks them. Good for a two-panel form / list-and-detail pair.
+
+CUSTOM PROPERTIES AND CONFIGURATION
+--pk-gutter (var(--pk-space-s-l)): space between each item.
+--pk-switcher-target-container-width (40rem): container width needed for
+  items to sit inline with each other.
+--pk-switcher-vertical-alignment (flex-start): vertical alignment.
+*/
+.pk-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pk-gutter, var(--pk-space-s-l));
+  align-items: var(--pk-switcher-vertical-alignment, flex-start);
+}
+.pk-switcher > * {
+  flex-grow: 1;
+  flex-basis: calc((var(--pk-switcher-target-container-width, 40rem) - 100%) * 999);
+}
+/* Max 2 items — anything beyond that goes full width */
+.pk-switcher > :nth-child(n + 3) {
+  flex-basis: 100%;
+}
+
+/*
+SIDEBAR
+A flexible main content area plus a fixed-width sidebar on the left or
+right. Stacks when there isn't room for both the sidebar's target width and
+the content's minimum width.
+
+CUSTOM PROPERTIES AND CONFIGURATION
+--pk-gutter (var(--pk-space-s-l)): space between sidebar and main content.
+--pk-sidebar-target-width (20rem): how large the sidebar should be.
+--pk-sidebar-content-min-width (50%): minimum size of the main content area.
+
+EXCEPTIONS
+.pk-sidebar[data-direction='rtl']: flips the sidebar to the right.
+*/
+.pk-sidebar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pk-gutter, var(--pk-space-s-l));
+}
+.pk-sidebar > :first-child {
+  flex-basis: var(--pk-sidebar-target-width, 20rem);
+  flex-grow: 1;
+}
+.pk-sidebar > :last-child {
+  flex-basis: 0;
+  flex-grow: 999;
+  min-width: var(--pk-sidebar-content-min-width, 50%);
+}
+.pk-sidebar[data-direction='rtl'] {
+  flex-direction: row-reverse;
+}
+
+/*
+GRID
+An auto-fill/auto-fit grid with configurable item size — no media queries.
+
+CUSTOM PROPERTIES AND CONFIGURATION
+--pk-gutter (var(--pk-space-s-l)): space between each item.
+--pk-grid-min-item-size (16rem): minimum ideal size of each item.
+--pk-grid-placement (auto-fill): auto-fit or auto-fill.
+
+EXCEPTIONS
+.pk-grid[data-layout='halves']: a 50/50 split.
+.pk-grid[data-layout='thirds']: a three-column split.
+*/
+.pk-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    var(--pk-grid-placement, auto-fill),
+    minmax(var(--pk-grid-min-item-size, 16rem), 1fr)
+  );
+  gap: var(--pk-gutter, var(--pk-space-s-l));
+}
+.pk-grid[data-layout='halves'] {
+  --pk-grid-placement: auto-fit;
+  --pk-grid-min-item-size: clamp(16rem, 50vw, 33rem);
+}
+.pk-grid[data-layout='thirds'] {
+  --pk-grid-placement: auto-fit;
+  --pk-grid-min-item-size: clamp(16rem, 33%, 20rem);
+}

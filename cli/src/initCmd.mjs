@@ -15,7 +15,7 @@ const FILES = [
 export async function run(argv) {
   const args = parseArgs(argv);
   if (args.help) {
-    console.log('poc-kit init [dir] [--force]\n  Scaffold prototype.src.html, build.config.json, flow.json, vendor/, HANDOFF.md');
+    console.log('poc-kit init [dir] [--force]\n  Scaffold prototype.src.html, build.config.json, flow.json, vendor/ (incl. layout.css), HANDOFF.md');
     return;
   }
   const dir = resolve(process.cwd(), args._[0] || '.');
@@ -24,6 +24,13 @@ export async function run(argv) {
   writeFileSync(join(dir, 'vendor', '.gitkeep'), '');
 
   head(`init  ${dir}`);
+  const layoutTarget = join(dir, 'vendor', 'layout.css');
+  if (existsSync(layoutTarget) && !args.force) {
+    warn('vendor/layout.css exists — skipped (use --force)');
+  } else {
+    copyFileSync(join(TEMPLATES, 'layout.css'), layoutTarget);
+    ok('vendor/layout.css');
+  }
   for (const [dest, src] of FILES) {
     const target = join(dir, dest);
     if (existsSync(target) && !args.force) { warn(`${dest} exists — skipped (use --force)`); continue; }

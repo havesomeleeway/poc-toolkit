@@ -3,13 +3,17 @@
   poc-kit skeleton. This is a BARE STRUCTURE ONLY:
     - header / footer slots
     - a minimal screen router (showScreen + [hidden])
-    - two build markers for inlined CSS
+    - three build markers for inlined CSS
 
   You add everything else: the screens the requirement calls for, the mocked logic,
   and styling that follows the chosen design system. Do not add anything the
   requirement does not ask for.
 
-  Build:  poc-kit build   (inlines vendor/font.css and vendor/ds.css into the markers)
+  Compose screen structure with the .pk-* classes in vendor/layout.css
+  (wrapper / flow / cluster / repel / switcher / sidebar / grid) instead of
+  ad hoc inline flex/grid — see that file's header comments for each one.
+
+  Build:  poc-kit build   (inlines vendor/layout.css, vendor/font.css and vendor/ds.css into the markers)
 -->
 <html lang="en">
 <head>
@@ -17,7 +21,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>POC</title>
 
-<!-- Inlined at build time. Order: font first, then design system. -->
+<!-- Inlined at build time. Order: layout structure, then font, then design system. -->
+<style>/*__LAYOUT_CSS__*/</style>
 <style>/*__FONT_CSS__*/</style>
 <style>/*__DS_CSS__*/</style>
 
@@ -31,7 +36,7 @@
 
 <header data-slot="header"><!-- app chrome, if the design system calls for it --></header>
 
-<main id="app">
+<main id="app" class="pk-wrapper">
   <!-- One <section class="screen" id="screen-1"> per screen the requirement needs.
        All but the first should start with the `hidden` attribute. -->
   <section class="screen" id="screen-1">
