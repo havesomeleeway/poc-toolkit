@@ -1,0 +1,10 @@
+{
+  "url": "prototype.html",
+  "viewport": [1200, 900],
+  "a11y": true,
+  "steps": [
+    { "expectVisible": "#app" },
+    { "expectNoConsoleErrors": true },
+    { "screenshot": "initial" }
+  ]
+}

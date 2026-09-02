@@ -1,0 +1,75 @@
+/*
+  poc-kit neutral kit — a minimal, unbranded fallback used only when no design
+  system is supplied (poc-kit add-ds --none). It is deliberately plain: enough to
+  make a POC legible, nothing that reads as a house style. If you have a design
+  system, use it instead.
+*/
+:root {
+  --nk-bg: #ffffff;
+  --nk-fg: #1a1a1a;
+  --nk-muted: #5b5b5b;
+  --nk-border: #cfcfcf;
+  --nk-accent: #2b5cff;
+  --nk-accent-fg: #ffffff;
+  --nk-radius: 6px;
+  --nk-space: 16px;
+  --nk-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--nk-font);
+  color: var(--nk-fg);
+  background: var(--nk-bg);
+  line-height: 1.55;
+}
+
+h1, h2, h3 { line-height: 1.25; margin: 0 0 0.5em; }
+p { margin: 0 0 1em; }
+a { color: var(--nk-accent); }
+
+main { max-width: 960px; margin: 0 auto; padding: calc(var(--nk-space) * 1.5); }
+.screen { animation: nk-fade .15s ease-out; }
+@keyframes nk-fade { from { opacity: 0 } to { opacity: 1 } }
+
+:focus-visible { outline: 3px solid var(--nk-accent); outline-offset: 2px; }
+
+button {
+  font: inherit;
+  padding: 8px 16px;
+  border: 1px solid var(--nk-accent);
+  border-radius: var(--nk-radius);
+  background: var(--nk-accent);
+  color: var(--nk-accent-fg);
+  cursor: pointer;
+}
+button[data-variant="secondary"] {
+  background: transparent;
+  color: var(--nk-fg);
+  border-color: var(--nk-border);
+}
+
+label { display: block; font-weight: 600; margin-bottom: 4px; }
+input, select, textarea {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--nk-border);
+  border-radius: var(--nk-radius);
+  background: #fff;
+  color: inherit;
+  width: 100%;
+  max-width: 22rem;
+}
+
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--nk-border); }
+
+.card {
+  border: 1px solid var(--nk-border);
+  border-radius: var(--nk-radius);
+  padding: var(--nk-space);
+}
+
+.muted { color: var(--nk-muted); }

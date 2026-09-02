@@ -1,0 +1,6 @@
+{
+  "name": "interactive-poc",
+  "version": "0.1.0",
+  "description": "Build one self-contained, offline, clickable HTML prototype of a single slice of a requirement — real design system, mocked logic, verified by driving it in a headless browser.",
+  "author": "team"
+}

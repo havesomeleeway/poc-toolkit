@@ -1,0 +1,16 @@
+node_modules/
+out/
+*.log
+.DS_Store
+
+# Worked examples are kept locally, not committed — they can carry client-derived
+# material. Start new builds from `poc-kit init`.
+/examples/
+
+# per-build working artefacts (kept in the consuming project, not here)
+/prototype.html
+/prototype.src.html
+/vendor/
+/flow.json
+/HANDOFF.md
+/build.config.json

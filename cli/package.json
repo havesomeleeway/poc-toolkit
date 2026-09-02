@@ -1,0 +1,22 @@
+{
+  "name": "poc-kit",
+  "version": "0.1.0",
+  "description": "Deterministic engine for building one self-contained, offline, design-system-styled interactive POC from a requirement.",
+  "type": "module",
+  "bin": {
+    "poc-kit": "bin/poc-kit.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin",
+    "src",
+    "templates",
+    "schema"
+  ],
+  "dependencies": {
+    "chrome-remote-interface": "^0.33.2"
+  },
+  "license": "MIT"
+}

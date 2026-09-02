@@ -1,0 +1,87 @@
+<!doctype html>
+<!--
+  poc-kit skeleton. This is a BARE STRUCTURE ONLY:
+    - header / footer slots
+    - a minimal screen router (showScreen + [hidden])
+    - two build markers for inlined CSS
+
+  You add everything else: the screens the requirement calls for, the mocked logic,
+  and styling that follows the chosen design system. Do not add anything the
+  requirement does not ask for.
+
+  Build:  poc-kit build   (inlines vendor/font.css and vendor/ds.css into the markers)
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POC</title>
+
+<!-- Inlined at build time. Order: font first, then design system. -->
+<style>/*__FONT_CSS__*/</style>
+<style>/*__DS_CSS__*/</style>
+
+<!-- Your app styles. Keep [hidden] working. -->
+<style>
+  [hidden] { display: none !important; }
+  /* add build-specific CSS here */
+</style>
+</head>
+<body>
+
+<header data-slot="header"><!-- app chrome, if the design system calls for it --></header>
+
+<main id="app">
+  <!-- One <section class="screen" id="screen-1"> per screen the requirement needs.
+       All but the first should start with the `hidden` attribute. -->
+  <section class="screen" id="screen-1">
+    <h1>Screen 1</h1>
+    <button type="button" data-nav="screen-2">Next</button>
+  </section>
+
+  <section class="screen" id="screen-2" hidden>
+    <h1>Screen 2</h1>
+    <button type="button" data-nav="screen-1">Back</button>
+  </section>
+</main>
+
+<footer data-slot="footer"></footer>
+
+<script>
+(function () {
+  "use strict";
+
+  // --- minimal screen router -------------------------------------------------
+  // Screens are <section class="screen" id="...">. showScreen() toggles [hidden].
+  // Any element with data-nav="<id>" navigates on click. Extend as needed.
+  var screens = function () { return Array.prototype.slice.call(document.querySelectorAll(".screen")); };
+
+  function showScreen(id) {
+    var found = false;
+    screens().forEach(function (s) {
+      var on = s.id === id;
+      s.hidden = !on;
+      if (on) found = true;
+    });
+    if (!found) { console.error("showScreen: no screen #" + id); return; }
+    window.scrollTo({ top: 0 });
+    var h = document.querySelector("#" + id + " h1, #" + id + " h2");
+    if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
+  }
+  window.showScreen = showScreen;
+
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-nav]");
+    if (t) { e.preventDefault(); showScreen(t.getAttribute("data-nav")); }
+  });
+
+  // show the first screen (or the one named in ?screen=)
+  var first = (screens()[0] || {}).id;
+  var q = new URLSearchParams(location.search).get("screen");
+  showScreen(q || first);
+
+  // --- your build code below ----------------------------------------------------
+})();
+</script>
+</body>
+</html>

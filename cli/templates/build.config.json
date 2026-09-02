@@ -1,0 +1,8 @@
+{
+  "src": "prototype.src.html",
+  "out": "prototype.html",
+  "markers": {
+    "/*__FONT_CSS__*/": "vendor/font.css",
+    "/*__DS_CSS__*/": "vendor/ds.css"
+  }
+}

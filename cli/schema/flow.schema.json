@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://poc-kit/flow.schema.json",
+  "title": "poc-kit verification flow",
+  "type": "object",
+  "required": ["url", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "url": { "type": "string", "description": "Path (relative to this file) or file:// URL of the built prototype." },
+    "viewport": {
+      "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2,
+      "description": "[width, height] in CSS pixels."
+    },
+    "settleMs": { "type": "number", "description": "Pause after load before the first step." },
+    "a11y": { "type": "boolean", "description": "Run the accessibility smoke pass at the end." },
+    "steps": { "type": "array", "items": { "$ref": "#/definitions/step" } }
+  },
+  "definitions": {
+    "step": {
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "click": { "type": "string", "description": "CSS selector to click." },
+        "setValue": { "type": "string", "description": "CSS selector of an input/select/textarea." },
+        "to": { "type": "string", "description": "Value for setValue." },
+        "wait": { "type": "number", "description": "Milliseconds to pause." },
+        "after": { "type": "number", "description": "Extra pause after a click/setValue." },
+        "eval": { "type": "string", "description": "JS expression; passes if truthy, or equals `equals`." },
+        "equals": {},
+        "expectVisible": { "type": "string", "description": "Selector that must be visible." },
+        "expectHidden": { "type": "string", "description": "Selector that must not be visible." },
+        "expectText": { "type": "string", "description": "Selector whose textContent must contain `contains`." },
+        "contains": { "type": "string" },
+        "expectNoConsoleErrors": { "type": "boolean" },
+        "screenshot": { "type": "string", "description": "Name; saved to out/<name>.png." },
+        "pdf": { "type": "string", "description": "Path; a generic Page.printToPDF capture. Nothing more." }
+      },
+      "additionalProperties": false
+    }
+  }
+}
