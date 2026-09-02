@@ -6,12 +6,13 @@
 import process from 'node:process';
 
 const COMMANDS = {
-  init:      () => import('../src/initCmd.mjs'),
-  'add-ds':  () => import('../src/addDs.mjs'),
-  'add-font':() => import('../src/addFont.mjs'),
-  build:     () => import('../src/build.mjs'),
-  verify:    () => import('../src/verify.mjs'),
-  handoff:   () => import('../src/handoff.mjs'),
+  init:          () => import('../src/initCmd.mjs'),
+  'add-ds':      () => import('../src/addDs.mjs'),
+  'add-font':    () => import('../src/addFont.mjs'),
+  build:         () => import('../src/build.mjs'),
+  verify:        () => import('../src/verify.mjs'),
+  handoff:       () => import('../src/handoff.mjs'),
+  'copilot-init':() => import('../src/copilotInit.mjs'),
 };
 
 const HELP = `poc-kit <command> [options]
@@ -22,6 +23,7 @@ const HELP = `poc-kit <command> [options]
   build                            Inline vendor/* into the markers -> prototype.html, then lint offline.
   verify [file] [--flow flow.json] Static checks always; headless-browser drive when Chrome is present.
   handoff                          Emit a blank HANDOFF.md skeleton.
+  copilot-init                     Drop the Copilot prompt + instructions into ./.github/.
 
 Run "poc-kit <command> --help" for command options.
 Everything about the POC's screens, interactions and any export behaviour is a per-build

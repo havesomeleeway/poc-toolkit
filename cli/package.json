@@ -1,7 +1,7 @@
 {
   "name": "poc-kit",
   "version": "0.1.0",
-  "description": "Deterministic engine for building one self-contained, offline, design-system-styled interactive POC from a requirement.",
+  "description": "Build one self-contained, offline, design-system-styled interactive POC from a requirement — mocked logic, verified by driving it in a headless browser.",
   "type": "module",
   "bin": {
     "poc-kit": "bin/poc-kit.mjs"
@@ -13,10 +13,35 @@
     "bin",
     "src",
     "templates",
-    "schema"
+    "schema",
+    "README.md"
   ],
+  "scripts": {
+    "check": "node --check bin/poc-kit.mjs && for f in src/*.mjs; do node --check \"$f\"; done",
+    "prepublishOnly": "npm run check"
+  },
+  "keywords": [
+    "prototype",
+    "poc",
+    "proof-of-concept",
+    "wireframe",
+    "mockup",
+    "design-system",
+    "offline",
+    "demo",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/havesomeleeway/poc-toolkit.git",
+    "directory": "cli"
+  },
+  "homepage": "https://github.com/havesomeleeway/poc-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/havesomeleeway/poc-toolkit/issues"
+  },
+  "license": "MIT",
   "dependencies": {
     "chrome-remote-interface": "^0.33.2"
-  },
-  "license": "MIT"
+  }
 }

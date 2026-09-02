@@ -13,9 +13,9 @@ export path — those come from the requirement and your direction for each buil
 | Path | What | For |
 |---|---|---|
 | [`METHOD.md`](./METHOD.md) | The canonical 9-step method (source of truth) | everyone |
-| [`cli/`](./cli) | **`poc-kit`** — Node CLI: `init` · `add-ds` · `add-font` · `build` · `verify` · `handoff` | everyone (humans, Copilot, Claude Code) |
+| [`cli/`](./cli) | **`poc-kit`** — Node CLI: `init` · `add-ds` · `add-font` · `build` · `verify` · `handoff` · `copilot-init` | everyone (humans, Copilot, Claude Code) |
 | [`claude/`](./claude) | Claude Code **skill + plugin** (`/interactive-poc`) — thin, follows `METHOD.md`, calls `poc-kit` | Claude Code users |
-| [`copilot/`](./copilot) | Copilot **prompt file** + `copilot-instructions` snippet — same method, same CLI | GitHub Copilot users |
+| [`copilot/`](./copilot) | How to wire up Copilot — `poc-kit copilot-init`, or the files under `cli/templates/copilot/` | GitHub Copilot users |
 
 Both assistant adapters are thin and mirror `METHOD.md`. Edit the method there, not in the
 adapters.
@@ -30,8 +30,7 @@ MIT — take it, adopt it, adapt it.
 ## Quick start (CLI)
 
 ```bash
-cd cli && npm install           # one dependency: chrome-remote-interface
-npm link                        # or: npx --prefix ./cli poc-kit …
+npm install -g poc-kit          # (until published: cd cli && npm install && npm link)
 
 # in a working directory for the build:
 poc-kit init .
@@ -54,9 +53,17 @@ Ensure `poc-kit` is on `PATH` (`cd cli && npm link`).
 
 ## Wire up Copilot
 
-Copy `copilot/prompts/interactive-poc.prompt.md` to `.github/prompts/` in the consuming repo, and
-paste `copilot/copilot-instructions.snippet.md` into that repo's `.github/copilot-instructions.md`.
-Ensure `poc-kit` is installed (`npm i -g` from `cli/`, or committed as a dev dependency).
+From the repo where you want `/interactive-poc`, with `poc-kit` installed:
+
+```bash
+poc-kit copilot-init
+```
+
+That writes `.github/prompts/interactive-poc.prompt.md` and creates/updates
+`.github/copilot-instructions.md`. In Copilot Chat (**Agent** mode) type `/interactive-poc`.
+
+For peers who don't use a terminal, see **[poc-toolkit-starter](https://github.com/havesomeleeway/poc-toolkit-starter)**
+— a one-click GitHub template with everything pre-wired for Codespaces.
 
 ## What you provide per build
 

@@ -1,8 +1,8 @@
 # Contributing
 
 **`METHOD.md` is the source of truth.** It defines the methodology. `claude/skills/interactive-poc/SKILL.md`
-and `copilot/prompts/interactive-poc.prompt.md` are thin adapters that mirror it — when you change
-the method, update all three in the same commit and keep them consistent.
+and `cli/templates/copilot/interactive-poc.prompt.md` are thin adapters that mirror it — when you
+change the method, update all three in the same commit and keep them consistent.
 
 The deterministic work lives in `cli/` (`poc-kit`). Keep its only runtime dependency
 (`chrome-remote-interface`) — add nothing else without a strong reason. Every `src/*.mjs` module
