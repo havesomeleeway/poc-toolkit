@@ -10,7 +10,7 @@ for the real build, and **not** a design-to-developer handoff.
 The prototype:
 
 - is **one file** with everything inside it — no framework, no build step, no `node_modules`.
-- uses **your real design system** (the one you're actually required to use).
+- uses **a real design system**.
 - has **fake but sensible** data and calculations, clearly labelled as not real. No backend, no
   database, no sign-in.
 
