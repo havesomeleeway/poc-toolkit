@@ -24,9 +24,6 @@ can put in front of users the same day.
 
 ## How this compares to prompt-to-app builders
 
-The difference is the artifact, not the ambition — those tools can also do a small slice, fake
-data, or use a real design system if you ask.
-
 |  | **poc-toolkit** | **prompt-to-app builders** |
 |---|---|---|
 | Output | one plain HTML/CSS/JS file | a React/TypeScript project |
