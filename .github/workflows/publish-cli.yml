@@ -1,0 +1,65 @@
+name: Publish poc-kit
+
+# Runs when anything in cli/ changes on main.
+# - If cli/package.json's version isn't the one already on npm  -> test + publish it.
+# - If it IS the same version                                   -> warn (you changed the
+#                                                                  CLI but forgot to bump).
+#
+# One-time setup: add a repo secret NPM_TOKEN (npm -> Access Tokens -> Automation).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cli/**"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # to push the version tag
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Compare version with npm
+        id: v
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          LOCAL=$(node -p "require('./package.json').version")
+          REMOTE=$(npm view "$NAME" version 2>/dev/null || echo none)
+          echo "local=$LOCAL"   >> "$GITHUB_OUTPUT"
+          echo "remote=$REMOTE" >> "$GITHUB_OUTPUT"
+          if [ "$LOCAL" = "$REMOTE" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::cli/ changed but package.json version ($LOCAL) is already published. Run 'npm version patch' in cli/ and push to release."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "Will publish $NAME@$LOCAL (npm has $REMOTE)"
+          fi
+
+      - name: Install + check
+        if: steps.v.outputs.publish == 'true'
+        run: |
+          npm ci
+          npm run check
+
+      - name: Publish to npm
+        if: steps.v.outputs.publish == 'true'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Tag the release
+        if: steps.v.outputs.publish == 'true'
+        run: |
+          cd ..
+          git tag "poc-kit-v${{ steps.v.outputs.local }}"
+          git push origin "poc-kit-v${{ steps.v.outputs.local }}"

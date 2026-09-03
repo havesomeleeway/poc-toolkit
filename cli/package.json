@@ -1,6 +1,6 @@
 {
   "name": "poc-kit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Build one self-contained, offline, design-system-styled interactive POC from a requirement — mocked logic, verified by driving it in a headless browser.",
   "type": "module",
   "bin": {
@@ -18,7 +18,8 @@
   ],
   "scripts": {
     "check": "node --check bin/poc-kit.mjs && for f in src/*.mjs; do node --check \"$f\"; done",
-    "prepublishOnly": "npm run check"
+    "prepublishOnly": "npm run check",
+    "release": "npm version patch -m \"cli: v%s\" --tag-version-prefix=poc-kit-v && git push --follow-tags && npm publish"
   },
   "keywords": [
     "prototype",
