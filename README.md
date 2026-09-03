@@ -24,24 +24,19 @@ can put in front of users the same day.
 
 ## How this is different from app builders and design tools
 
-**Compared with tools that generate a working app from a prompt** (they build in
-React/TypeScript, wire up a database, and aim for something you ship):
-
-- The output here is plain HTML/CSS/JS in one file — nothing to run, nothing to maintain, nothing
-  to un-pick later. It's built to be thrown away.
-- It stays one slice of the requirement, on purpose. It won't try to build the whole system.
-- Logic is mocked and labelled as fake, not backed by real data or a login.
-- It uses your design system, not a generic framework look.
-
-**Compared with visual design and prototyping tools** (you arrange screens on a canvas):
-
-- It's prompt-and-code, not drag-and-drop. Quicker to a believable, genuinely interactive screen;
-  slower if you want to nudge pixels by hand.
-- The prototype is real HTML in a real browser — real form fields, real keyboard behaviour, real
-  reflow — not a canvas imitating interactivity.
-- It's checked automatically by clicking through it; design tools don't test interaction.
-- It starts from a written requirement and makes you pick the slice and confirm who the screen is
-  for.
+|  | **poc-toolkit** | **App builders** (prompt → working app) | **Design / prototyping tools** (canvas) |
+|---|---|---|---|
+| Output | one plain HTML/CSS/JS file | a React/TypeScript app + database | a canvas of linked screens |
+| Made to | be thrown away after feedback | be shipped / become the product | communicate a design |
+| Scope | one slice of the requirement | the whole system | whatever you draw |
+| Data & logic | mocked, labelled fake; no backend or login | real data, auth, storage | none — visuals only |
+| Styling | your real design system, put in the file | a generic framework look | your design, drawn by hand |
+| Change it by | asking the assistant | asking the assistant / editing code | dragging on the canvas |
+| Interactivity | real HTML in a real browser (real fields, keyboard, reflow) | real app behaviour | canvas imitates clicks |
+| Checked automatically? | yes — clicked through, desktop + phone | it runs, but no written checks | no interaction testing |
+| Starts from | a written requirement (pick the slice, confirm the user) | a prompt | a blank canvas |
+| You maintain afterwards | nothing | the app and its dependencies | the file inside the tool |
+| Setup needed | `poc-kit` + Chrome + an AI assistant | an account / the tool's stack | an account / the app |
 
 **What you give up either way:** no visual editing (changes go back through the assistant), no
 real data or persistence, no live collaboration. If the feedback you need is about heavy data or
