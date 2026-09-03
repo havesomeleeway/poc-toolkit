@@ -9,18 +9,13 @@ for the real build, and **not** a design-to-developer handoff.
 
 The prototype:
 
-- is **one file** with everything inside it — no framework, no build step, no `node_modules`. It
-  opens by double-click, works with no internet, and still opens years from now.
-- uses **your real design system** (the one you're actually required to use), fetched and put
-  inside the file — not a generic look-alike you'd have to replace later.
+- is **one file** with everything inside it — no framework, no build step, no `node_modules`.
+- uses **your real design system** (the one you're actually required to use).
 - has **fake but sensible** data and calculations, clearly labelled as not real. No backend, no
   database, no sign-in.
-- is **checked by clicking through it** in a real browser (running invisibly) before you see it —
-  on a normal screen and a phone-sized one.
 
 Because there's no stack to wire up and nothing to install or deploy, you get to a shareable
-prototype fast — but speed is the payoff, not the point. The point is a believable throwaway you
-can put in front of users the same day.
+prototype fast.
 
 ## How this compares to prompt-to-app builders
 
