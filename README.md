@@ -22,27 +22,20 @@ Because there's no stack to wire up and nothing to install or deploy, you get to
 prototype fast — but speed is the payoff, not the point. The point is a believable throwaway you
 can put in front of users the same day.
 
-## How this is different from app builders and design tools
+## How this compares to prompt-to-app builders
 
-|  | **poc-toolkit** | **App builders** (prompt → working app) | **Design / prototyping tools** (canvas) |
-|---|---|---|---|
-| Output | one plain HTML/CSS/JS file | a React/TypeScript app + database | a canvas of linked screens |
-| Made to | be thrown away after feedback | be shipped / become the product | communicate a design |
-| Scope | one slice of the requirement | the whole system | whatever you draw |
-| Data & logic | mocked, labelled fake; no backend or login | real data, auth, storage | none — visuals only |
-| Styling | your real design system, put in the file | a generic framework look | your design, drawn by hand |
-| Change it by | asking the assistant | asking the assistant / editing code | dragging on the canvas |
-| Interactivity | real HTML in a real browser (real fields, keyboard, reflow) | real app behaviour | canvas imitates clicks |
-| Checked automatically? | yes — clicked through, desktop + phone | it runs, but no written checks | no interaction testing |
-| Starts from | a written requirement (pick the slice, confirm the user) | a prompt | a blank canvas |
-| You maintain afterwards | nothing | the app and its dependencies | the file inside the tool |
-| Setup needed | `poc-kit` + Chrome + an AI assistant | an account / the tool's stack | an account / the app |
+The difference is the artifact, not the ambition — those tools can also do a small slice, fake
+data, or use a real design system if you ask.
 
-**What you give up either way:** no visual editing (changes go back through the assistant), no
-real data or persistence, no live collaboration. If the feedback you need is about heavy data or
-sign-in flows, mocked logic only goes so far. And while the *prototype* has no stack, the
-*toolkit* still needs the small `poc-kit` tool, a Chrome/Chromium for the check, and an AI
-assistant to drive it.
+|  | **poc-toolkit** | **prompt-to-app builders** |
+|---|---|---|
+| Output | one plain HTML/CSS/JS file | a React/TypeScript project |
+| To open it | double-click; works offline | their preview, or a dev environment |
+| Afterwards | nothing to run or maintain | a codebase with dependencies |
+| Runs in | the assistant you already use; MIT, self-hostable | their web app / account |
+
+Trade-offs: no visual editing (changes go through the assistant), no real data or persistence,
+no live collaboration.
 
 ## What it decides, and what it doesn't
 
