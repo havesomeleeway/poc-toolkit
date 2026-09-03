@@ -7,7 +7,7 @@ kind of requirement.
 The prototype:
 
 - is **one file** with everything inside it, so it opens with no internet and nothing to install;
-- uses the **real design system** you name, not a look-alike;
+- uses the **real design system** you name
 - has **fake but sensible** data and calculations, clearly labelled as not real;
 - is **checked by actually clicking through it** in a real browser (running invisibly) before you
   see it — on a normal screen and a phone-sized one.
