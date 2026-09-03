@@ -1,16 +1,53 @@
 # poc-toolkit
 
-Turn a written requirement (a spec, a ticket, a user story) into a **clickable prototype** — a
-single HTML file you can open in any browser and share. It works with any design system, for any
-kind of requirement.
+Turn a written requirement (a spec, a ticket, a user story) into a **throwaway clickable
+prototype** — one HTML file, in your real design system, that you open in any browser and hand
+around to get feedback before anyone builds anything.
+
+It's meant to be discarded once it's done its job. It is **not** an app, **not** a starting point
+for the real build, and **not** a design-to-developer handoff.
 
 The prototype:
 
-- is **one file** with everything inside it, so it opens with no internet and nothing to install;
-- uses the **real design system** you name
-- has **fake but sensible** data and calculations, clearly labelled as not real;
-- is **checked by actually clicking through it** in a real browser (running invisibly) before you
-  see it — on a normal screen and a phone-sized one.
+- is **one file** with everything inside it — no framework, no build step, no `node_modules`. It
+  opens by double-click, works with no internet, and still opens years from now.
+- uses **your real design system** (the one you're actually required to use), fetched and put
+  inside the file — not a generic look-alike you'd have to replace later.
+- has **fake but sensible** data and calculations, clearly labelled as not real. No backend, no
+  database, no sign-in.
+- is **checked by clicking through it** in a real browser (running invisibly) before you see it —
+  on a normal screen and a phone-sized one.
+
+Because there's no stack to wire up and nothing to install or deploy, you get to a shareable
+prototype fast — but speed is the payoff, not the point. The point is a believable throwaway you
+can put in front of users the same day.
+
+## How this is different from app builders and design tools
+
+**Compared with tools that generate a working app from a prompt** (they build in
+React/TypeScript, wire up a database, and aim for something you ship):
+
+- The output here is plain HTML/CSS/JS in one file — nothing to run, nothing to maintain, nothing
+  to un-pick later. It's built to be thrown away.
+- It stays one slice of the requirement, on purpose. It won't try to build the whole system.
+- Logic is mocked and labelled as fake, not backed by real data or a login.
+- It uses your design system, not a generic framework look.
+
+**Compared with visual design and prototyping tools** (you arrange screens on a canvas):
+
+- It's prompt-and-code, not drag-and-drop. Quicker to a believable, genuinely interactive screen;
+  slower if you want to nudge pixels by hand.
+- The prototype is real HTML in a real browser — real form fields, real keyboard behaviour, real
+  reflow — not a canvas imitating interactivity.
+- It's checked automatically by clicking through it; design tools don't test interaction.
+- It starts from a written requirement and makes you pick the slice and confirm who the screen is
+  for.
+
+**What you give up either way:** no visual editing (changes go back through the assistant), no
+real data or persistence, no live collaboration. If the feedback you need is about heavy data or
+sign-in flows, mocked logic only goes so far. And while the *prototype* has no stack, the
+*toolkit* still needs the small `poc-kit` tool, a Chrome/Chromium for the check, and an AI
+assistant to drive it.
 
 ## What it decides, and what it doesn't
 
