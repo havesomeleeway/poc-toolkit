@@ -11,6 +11,7 @@ const COMMANDS = {
   'add-font':    () => import('../src/addFont.mjs'),
   build:         () => import('../src/build.mjs'),
   verify:        () => import('../src/verify.mjs'),
+  query:         () => import('../src/query.mjs'),
   handoff:       () => import('../src/handoff.mjs'),
   'copilot-init':() => import('../src/copilotInit.mjs'),
 };
@@ -22,6 +23,9 @@ const HELP = `poc-kit <command> [options]
   add-font <family | ./file>       Embed a font as a base64 @font-face.
   build                            Inline vendor/* into the markers -> prototype.html, then lint offline.
   verify [file] [--flow flow.json] Static checks always; headless-browser drive when Chrome is present.
+                                    --quiet suppresses passing lines; --diff shows only steps whose
+                                    pass/fail changed since the last run (cached in .poc-kit/).
+  query --selector "<css>" [file]  Print an element's computed style, without reading the whole file.
   handoff                          Emit a blank HANDOFF.md skeleton.
   copilot-init                     Drop the Copilot prompt + instructions into ./.github/.
 

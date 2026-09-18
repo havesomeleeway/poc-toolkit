@@ -26,8 +26,9 @@ async function freePort(start = 9222) {
   throw new Error('no free port for Chrome');
 }
 
-export async function runFlow(flow, { chromePath, flowDir = process.cwd(), outDir = resolve(process.cwd(), 'out') }) {
-  mkdirSync(outDir, { recursive: true });
+// Spawn a throwaway headless Chrome and connect to it over CDP. Shared by runFlow and
+// anything else (e.g. the `query` command) that needs a page without a whole flow.
+export async function launchChrome(chromePath) {
   const port = await freePort();
   const userDir = resolve(tmpdir(), `poc-kit-chrome-${process.pid}-${Date.now()}`);
   // Containers / CI usually need --no-sandbox --disable-dev-shm-usage; pass them via
@@ -39,19 +40,35 @@ export async function runFlow(flow, { chromePath, flowDir = process.cwd(), outDi
     ...extraFlags, 'about:blank',
   ], { stdio: 'ignore' });
 
+  let client;
+  for (let i = 0; i < 60; i++) {
+    try { client = await CDP({ port }); break; } catch { await sleep(250); }
+  }
+  if (!client) {
+    proc.kill();
+    try { rmSync(userDir, { recursive: true, force: true }); } catch {}
+    throw new Error('Chrome did not expose a debugging port');
+  }
+
+  async function close() {
+    try { await client.close(); } catch {}
+    proc.kill();
+    try { rmSync(userDir, { recursive: true, force: true }); } catch {}
+  }
+
+  return { client, close };
+}
+
+export async function runFlow(flow, { chromePath, flowDir = process.cwd(), outDir = resolve(process.cwd(), 'out') }) {
+  mkdirSync(outDir, { recursive: true });
+
   const results = [];
   const consoleErrors = [];
   const artifacts = [];
   const rec = (name, pass, detail) => results.push({ name, pass, detail });
 
-  let client;
+  const { client, close } = await launchChrome(chromePath);
   try {
-    // wait for the debugger endpoint
-    for (let i = 0; i < 60; i++) {
-      try { client = await CDP({ port }); break; } catch { await sleep(250); }
-    }
-    if (!client) throw new Error('Chrome did not expose a debugging port');
-
     const { Page, Runtime, DOM, Input, Emulation } = client;
     await Page.enable(); await Runtime.enable(); await DOM.enable();
 
@@ -139,9 +156,7 @@ export async function runFlow(flow, { chromePath, flowDir = process.cwd(), outDi
       for (const check of await a11ySmoke(ev)) rec(`a11y: ${check.name}`, check.pass, check.detail);
     }
   } finally {
-    if (client) { try { await client.close(); } catch {} }
-    proc.kill();
-    try { rmSync(userDir, { recursive: true, force: true }); } catch {}
+    await close();
   }
 
   return { results, consoleErrors, artifacts };

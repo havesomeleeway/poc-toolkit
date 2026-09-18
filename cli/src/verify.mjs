@@ -3,20 +3,40 @@
 // prints DEGRADED and passes on the static checks alone.
 
 import { resolve, dirname } from 'node:path';
-import { readFileSync, existsSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, mkdtempSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import process from 'node:process';
-import { parseArgs, readConfig, head, ok, warn, fail, info } from './util.mjs';
+import { parseArgs, readConfig, setQuiet, head, ok, warn, fail, info } from './util.mjs';
 import { lintOffline, printReport } from './lint-offline.mjs';
 import { findChrome } from './chrome.mjs';
 
 export async function run(argv) {
   const args = parseArgs(argv);
   if (args.help) {
-    console.log('poc-kit verify [file] [--flow flow.json]\n  Static offline + JS-syntax checks; headless-browser flow when Chrome is available.');
+    console.log(
+      'poc-kit verify [file] [--flow flow.json] [--quiet] [--diff]\n' +
+      '  Static offline + JS-syntax checks; headless-browser flow when Chrome is available.\n' +
+      '  --quiet  suppress passing ("ok") lines — headers, warnings, failures and the tally still print.\n' +
+      '           auto-enabled when $CI is set; pass --quiet=false to force verbose in CI.\n' +
+      '  --diff   only show steps whose pass/fail changed since the last run\n' +
+      '           (cached in .poc-kit/last-run.json), plus a count of unchanged steps.',
+    );
     return;
   }
+
+  const ci = process.env.CI && process.env.CI !== 'false' && process.env.CI !== '0';
+  const quiet = args.quiet !== undefined ? args.quiet !== 'false' && args.quiet !== false : Boolean(ci);
+  setQuiet(quiet);
+  const diffMode = Boolean(args.diff);
+  const cachePath = resolve(process.cwd(), '.poc-kit', 'last-run.json');
+  let prevRun = null;
+  if (diffMode && existsSync(cachePath)) {
+    try { prevRun = JSON.parse(readFileSync(cachePath, 'utf8')); } catch { /* ignore a corrupt cache */ }
+  }
+  const currentRun = {};
+  let unchangedCount = 0;
+  let totalPass = 0, totalFail = 0, totalAdvisory = 0;
 
   const cfg = readConfig();
   const file = resolve(process.cwd(), args._[0] || (cfg && cfg.out) || 'prototype.html');
@@ -62,9 +82,18 @@ export async function run(argv) {
     let passOk = true;
     for (const r of results) {
       const isA11y = r.name.startsWith('a11y:');
+      if (r.pass) totalPass++;
+      else if (isA11y) totalAdvisory++;
+      else { totalFail++; passOk = false; }
+
+      const key = `${label}::${r.name}`;
+      currentRun[key] = r.pass;
+      const changed = !prevRun || !(key in prevRun) || prevRun[key] !== r.pass;
+      if (diffMode && !changed) { unchangedCount++; continue; }
+
       if (r.pass) ok(r.name);
       else if (isA11y) warn(`${r.name}${r.detail ? ' — ' + r.detail : ''}  (advisory)`);
-      else { fail(`${r.name}${r.detail ? ' — ' + r.detail : ''}`); passOk = false; }
+      else fail(`${r.name}${r.detail ? ' — ' + r.detail : ''}`);
     }
     head(`console errors: ${consoleErrors.length}`);
     for (const e of consoleErrors) fail(e);
@@ -92,7 +121,12 @@ export async function run(argv) {
     driveOk = driveOk && mobileOk;
   }
 
+  mkdirSync(dirname(cachePath), { recursive: true });
+  writeFileSync(cachePath, JSON.stringify(currentRun));
+
   head(staticOk && driveOk ? 'PASS' : 'FAIL');
+  info(`${totalPass} passed, ${totalFail} failed${totalAdvisory ? ` (${totalAdvisory} advisory)` : ''}`);
+  if (diffMode) info(prevRun ? `${unchangedCount} unchanged since last run` : 'no previous run to diff against — showing all');
   process.exit(staticOk && driveOk ? 0 : 1);
 }
 

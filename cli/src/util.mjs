@@ -29,7 +29,12 @@ export function parseArgs(argv) {
   return out;
 }
 
-export const ok   = (m) => console.log(`  ok    ${m}`);
+// Quiet mode suppresses "ok" lines only — section headers, warnings, failures and info
+// stay, so an agent-driven caller still sees exactly what broke, just not the noise.
+let QUIET = false;
+export function setQuiet(v) { QUIET = Boolean(v); }
+
+export const ok   = (m) => { if (!QUIET) console.log(`  ok    ${m}`); };
 export const warn = (m) => console.log(`  warn  ${m}`);
 export const info = (m) => console.log(`  ${m}`);
 export const fail = (m) => console.error(`  FAIL  ${m}`);

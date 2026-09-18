@@ -37,7 +37,9 @@ direction — presume none of them.** Do not add features I did not ask for.
 6. **Mock the logic:** deterministic, inspectable, clearly labelled illustrative, never fake
    precision (no invented IDs/decimals, no real names).
 7. **Follow the design system's own guidance** for layout, navigation, status and actions. Decide
-   cross-screen conventions once and keep them consistent.
+   cross-screen conventions once and keep them consistent. Before adding a new badge/chip/pill/
+   label recipe, check whether one already exists (same property shape — border-radius + padding
+   + font-size together — is the tell) and reuse or extend it instead of adding another variant.
 8. **Verify by driving it:** write `flow.json` (steps: `click`, `setValue`, `expectVisible`,
    `expectText`, `expectNoConsoleErrors`, `screenshot`), run `npx poc-kit verify`. **Zero console
    errors is a gate.** Fix and re-run until it prints `PASS`; then review the screenshots in

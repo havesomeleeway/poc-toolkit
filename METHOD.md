@@ -107,7 +107,10 @@ opinion either, pick a sensible default and note it in `HANDOFF.md`.
 
 `references/consistency.md` is a checklist of decisions to **make once and keep consistent across
 screens** (primary-action placement, how state is shown, keyboard/focus behaviour, whether the
-requirement's provenance is surfaced). It lists *what to decide*, not *what to choose*.
+requirement's provenance is surfaced). It lists *what to decide*, not *what to choose*. Before
+authoring a new badge/chip/pill/label recipe, check whether a similar one already exists in the
+build (same property shape — border-radius + padding + font-size clustered together is the usual
+tell) and reuse or extend it instead of adding a fourth variant.
 
 ## 8. Verify by driving it
 
