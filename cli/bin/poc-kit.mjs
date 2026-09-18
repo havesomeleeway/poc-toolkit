@@ -27,6 +27,8 @@ const HELP = `poc-kit <command> [options]
                                     pass/fail changed since the last run (cached in .poc-kit/).
   query --selector "<css>" [file]  Print an element's computed style, without reading the whole file.
   handoff                          Emit a blank HANDOFF.md skeleton.
+  handoff --package [--note "…"]   Bundle HANDOFF.md + prototype + sources into
+                                    handoff/<timestamp>/, logged in CHANGELOG.md.
   copilot-init                     Drop the Copilot prompt + instructions into ./.github/.
 
 Run "poc-kit <command> --help" for command options.

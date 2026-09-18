@@ -37,7 +37,9 @@ direction — presume none of them.**
    `references/consistency.md` as a *what-to-decide* checklist, not a set of values (`§7`).
 8. **Verify by driving it:** author `flow.json`, run `poc-kit verify`. Zero console errors is a
    gate. Fix, re-run, read the screenshots (`§8`).
-9. **Hand off:** `poc-kit handoff`, then fill in what the audience needs (`§9`).
+9. **Hand off:** `poc-kit handoff`, then fill in what the audience needs. Going to a developer?
+   `poc-kit handoff --package` bundles the sources (not just `prototype.html`) into
+   `handoff/<timestamp>/` and logs the run in `CHANGELOG.md` (`§9`).
 
 ## STOP points
 

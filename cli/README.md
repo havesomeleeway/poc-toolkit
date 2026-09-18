@@ -27,6 +27,8 @@ poc-kit add-font <family | ./file>    Embed a font as a base64 @font-face.
 poc-kit build                         Inline vendor/* into the markers -> prototype.html, lint offline.
 poc-kit verify [file] [--flow f.json] Static checks always; headless-browser drive when Chrome is present.
 poc-kit handoff                       Emit a blank HANDOFF.md skeleton.
+poc-kit handoff --package [--note m]  Bundle HANDOFF.md + prototype + sources into
+                                       handoff/<timestamp>/, logged in CHANGELOG.md.
 poc-kit copilot-init                  Drop the Copilot prompt + instructions into ./.github/.
 ```
 
@@ -40,7 +42,17 @@ poc-kit add-font "Inter"              # optional
 poc-kit build
 poc-kit verify
 poc-kit handoff
+#   ...fill in HANDOFF.md...
+poc-kit handoff --package --note "first cut for review"
 ```
+
+`handoff --package` copies (never inlines) `HANDOFF.md`, `prototype.html`, `prototype.src.html`,
+`build.config.json`, `flow.json`, `vendor/` and `out/` into `handoff/<timestamp>/` — that folder is
+what you send a developer, since the built `prototype.html` alone hides the seam between the real
+design system's classes and poc-kit's own scaffolding (`vendor/layout.css`, the `.screen`/`data-nav`
+router). Each run also updates `CHANGELOG.md` at the project root with what changed since the
+previous package, so re-running it after edits gives whoever's tracking the build a diff, not just
+a new folder.
 
 ## Env
 

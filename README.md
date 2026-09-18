@@ -51,6 +51,11 @@ requirement and your direction on each build.
 - `flow.json` — the click-through test, so the check can be re-run.
 - `out/` — a screenshot of every screen (normal and phone size).
 - `HANDOFF.md` — a short note: what's real, what's fake, how to run and rebuild it.
+- `handoff/<timestamp>/` (via `poc-kit handoff --package`) — the bundle to actually send a
+  developer: `HANDOFF.md`, the prototype, its sources, `vendor/`, `flow.json` and `out/`, copied
+  as-is rather than inlined so the real design-system classes stay distinguishable from poc-kit's
+  own scaffolding. `CHANGELOG.md` at the project root logs each package and what changed since the
+  last one.
 
 ## The pieces
 

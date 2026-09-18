@@ -140,6 +140,19 @@ poc-kit handoff        # blank HANDOFF.md skeleton
 Fill in what the audience needs — what's real vs mocked, how to run it, how to rebuild it, known
 gaps — and a walkthrough if there will be a live demo. Format and depth are the user's call.
 
+If the build is going to a **developer**, not just an audience clicking through it, don't send
+`prototype.html` alone — the inlined single file hides the seam between the real design system's
+classes and poc-kit's own scaffolding (`vendor/layout.css`'s `.pk-*` primitives, the `.screen`/
+`data-nav` router). Once `HANDOFF.md` is filled in:
+
+```
+poc-kit handoff --package [--note "..."]
+```
+
+This copies `HANDOFF.md`, the prototype, its sources, `vendor/` and `out/` — unmodified, not
+inlined — into `handoff/<timestamp>/`, and logs the run (and what changed since the previous
+package) in `CHANGELOG.md` at the project root. Send that folder, not the single file.
+
 ---
 
 ## Boundaries — when not to use this method
