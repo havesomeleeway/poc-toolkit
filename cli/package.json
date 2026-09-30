@@ -1,6 +1,6 @@
 {
   "name": "poc-kit",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Build one self-contained, offline, design-system-styled interactive POC from a requirement — mocked logic, verified by driving it in a headless browser.",
   "type": "module",
   "bin": {

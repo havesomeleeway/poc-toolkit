@@ -7,7 +7,7 @@
 // all use it, so class-based (.btn.btn-primary), BEM (.cds--btn--primary) and classless
 // (button[data-variant=secondary]) design systems are described the same way.
 
-import { rules, subject, parseCompound, classSet, customProps, customPropValues, varsUsed } from './css-scan.mjs';
+import { rules, subject, parseCompound, classSet, customProps, customPropValues, varsUsed, compoundsOf, selectorClasses } from './css-scan.mjs';
 
 export const PROFILE_VERSION = '0.1';
 
@@ -101,12 +101,14 @@ export function draftProfile(css, { name = 'Unnamed design system', version, sty
 
   // --- class-based components ----------------------------------------------------------------
   const isStateClass = (l) => /(^|-)(is|has)-/.test(l);
+  // Tailwind-style names (hover:x, w-1/2, h-[3px], !m-0) are always utilities, never components.
+  const plain = (l) => /^[\w-]+$/.test(l) && !/^-|-$/.test(l);
   const elementVariant = (l) => qualified.has(byLocal.get(l)) && !bare.has(byLocal.get(l));
   const bem = new Map();          // block -> { parts: Map(name -> class), mods: Map(name -> class) }
   const children = new Map();     // dash root -> [child locals]
 
   for (const [l, full] of byLocal) {
-    if (isStateClass(l) || elementVariant(l)) continue;
+    if (isStateClass(l) || elementVariant(l) || !plain(l)) continue;
     const m = l.match(/^([a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*?)(__|--)(.+)$/);
     if (m) {
       const [, block, sep, rest] = m;
@@ -117,7 +119,7 @@ export function draftProfile(css, { name = 'Unnamed design system', version, sty
     const segs = l.split('-');
     for (let i = segs.length - 1; i > 0; i--) {
       const prefix = segs.slice(0, i).join('-');
-      if (byLocal.has(prefix) && !isStateClass(prefix)) {
+      if (byLocal.has(prefix) && !isStateClass(prefix) && plain(prefix)) {
         if (!children.has(prefix)) children.set(prefix, []);
         children.get(prefix).push(l);
         break;
@@ -129,7 +131,7 @@ export function draftProfile(css, { name = 'Unnamed design system', version, sty
     ...children.keys(),
     ...[...bem.keys()].filter((b) => byLocal.has(b)),
     ...[...byLocal.keys()].filter((l) => !l.includes('__') && !l.includes('--') && !isChild(l)),
-  ].filter((l) => !isStateClass(l) && !elementVariant(l) && substantial(l)));
+  ].filter((l) => plain(l) && !isStateClass(l) && !elementVariant(l) && substantial(l)));
   function isChild(l) { for (const kids of children.values()) if (kids.includes(l)) return true; return false; }
 
   for (const root of [...roots].sort()) {
@@ -140,6 +142,7 @@ export function draftProfile(css, { name = 'Unnamed design system', version, sty
     for (const kid of children.get(root) || []) {
       if (roots.has(kid)) continue;
       const suffix = kid.slice(root.length + 1);
+      if (!suffix) continue;
       addModifier(comp, suffix, byLocal.get(kid));
       assigned.add(byLocal.get(kid));
     }
@@ -314,12 +317,13 @@ function groupTokens(values) {
   return Object.fromEntries(Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)));
 }
 
-function compounds(selector) {
-  return selector.replace(/\s*([>+~])\s*/g, ' ').split(/\s+(?![^([]*[)\]])/).filter(Boolean);
-}
+const compounds = compoundsOf;
 
+const classCache = new Map();
 function hasClass(selector, cls) {
-  return new RegExp(`\\.${cls.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}(?![\\w-])`).test(selector);
+  let list = classCache.get(selector);
+  if (!list) { list = selectorClasses(selector); classCache.set(selector, list); }
+  return list.includes(cls);
 }
 
 function pascal(s) {
@@ -334,7 +338,7 @@ const PROFILE_FIELDS = ['$schema', 'profileVersion', 'name', 'version', 'stylesh
 const COMPONENT_FIELDS = ['name', 'description', 'docs', 'markup', 'variants', 'states', 'parts', 'tokens', 'snippet'];
 const NAME = /^[A-Z][A-Za-z0-9]*$/;
 const KEY = /^[a-zA-Z0-9][\w-]*$/;
-const CLASS = /^-?[_a-zA-Z][_a-zA-Z0-9-]*$/;
+const CLASS = /^\S+$/; // any class a class="" attribute can hold, including hover:x or w-1/2
 const ELEMENT = /^[a-z][a-z0-9-]*$/;
 
 // Returns a list of problems (strings). Empty means valid. With `css`, also checks that every

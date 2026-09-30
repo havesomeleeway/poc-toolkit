@@ -2,6 +2,8 @@
 // properties so a build targets selectors that actually exist. Rough but useful —
 // it is an index, not a full CSS parse.
 
+import { selectorClasses } from './css-scan.mjs';
+
 export function introspectDs(css, { source = 'unknown', bytes = css.length } = {}) {
   const stripped = css.replace(/\/\*[\s\S]*?\*\//g, ' ');
 
@@ -14,7 +16,7 @@ export function introspectDs(css, { source = 'unknown', bytes = css.length } = {
   for (const m of stripped.matchAll(/([^{}]+)\{/g)) {
     const sel = m[1];
     if (sel.includes('@')) continue;
-    for (const c of sel.matchAll(/\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g)) classes.add(c[1]);
+    for (const c of selectorClasses(sel)) classes.add(c);
   }
 
   // media breakpoints

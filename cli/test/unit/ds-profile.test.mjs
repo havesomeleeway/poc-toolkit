@@ -183,3 +183,39 @@ test('describeMarkup', () => {
   assert.equal(describeMarkup({ element: 'input', classes: ['a'], attributes: { type: 'text', disabled: '' } }), 'input.a[type="text"][disabled]');
   assert.equal(describeMarkup({}), '(default)');
 });
+
+// Tailwind-style: escaped class names are read whole and are always utilities.
+const TAILWIND = `
+.flex { display: flex; }
+.hover\\:bg-red:hover { background: red; }
+.w-1\\/2 { width: 50%; }
+.h-\\[1\\.25em\\] { height: 1.25em; }
+.transition { transition-property: color; transition-duration: .15s; transition-timing-function: ease; }
+.transition-\\[color\\] { transition-property: color; transition-duration: .15s; transition-timing-function: ease; }
+.\\!m-0 { margin: 0 !important; }
+.z-\\[calc\\(1000-var\\(--i\\)\\)\\] { z-index: calc(1000 - var(--i)); }
+.a, .\\[\\&\\>svg\\]\\:size-4>svg { width: 1rem; height: 1rem; color: red; }
+`;
+
+test('escaped class names are read whole and unescaped', async () => {
+  const { classSet, selectorClasses } = await import('../../src/css-scan.mjs');
+  assert.deepEqual([...classSet(TAILWIND)].sort(), [
+    '!m-0', '[&>svg]:size-4', 'a', 'flex', 'h-[1.25em]', 'hover:bg-red', 'transition', 'transition-[color]',
+    'w-1/2', 'z-[calc(1000-var(--i))]',
+  ]);
+  assert.deepEqual(selectorClasses('.hover\\:x > .a:hover'), ['hover:x', 'a']);
+  assert.deepEqual(selectorClasses('.\\31 0'), ['10']);
+});
+
+test('Tailwind-style classes never become components, parts or variants; the draft stays valid', () => {
+  const p = draftProfile(TAILWIND);
+  for (const c of p.components) {
+    for (const m of [c.markup, ...Object.values(c.variants || {}), ...Object.values(c.parts || {})]) {
+      for (const cls of m.classes || []) assert.match(cls, /^[\w-]+$/, `${c.name} uses ${cls}`);
+    }
+  }
+  assert.ok(p.utilities.includes('transition-[color]'));
+  assert.ok(p.utilities.includes('hover:bg-red'));
+  assert.deepEqual(validateProfile(p, { css: TAILWIND }), []);
+  assert.ok(schemaValid(p), ajv.errorsText(schemaValid.errors));
+});

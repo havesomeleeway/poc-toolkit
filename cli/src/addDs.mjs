@@ -115,6 +115,14 @@ export async function run(argv) {
   }
 
   info('');
+  // Utility-first design systems (Tailwind-based, e.g. component libraries shipped as React) keep
+  // their components in code, not in the CSS, so a draft can't find them.
+  if (!shared && spec !== NEUTRAL && stats.classes >= 200 && (profile.utilities || []).length / stats.classes > 0.9) {
+    warn(`${stats.classes} classes, almost all utilities (Tailwind-style). This design system's components`);
+    info('      live in its component library, not its CSS, so the draft cannot find them. Write the');
+    info('      profile from the library instead: one entry per component, with the classes its markup');
+    info('      uses (see the library\'s docs or source), then share it and use add-ds --profile.');
+  }
   if (!profile.reviewed) {
     warn(`${rel(outProfile)} is a draft guessed from the CSS. Review it once for this design system:`);
     info('      rename components to the design system\'s own names, fix variants/states/parts,');

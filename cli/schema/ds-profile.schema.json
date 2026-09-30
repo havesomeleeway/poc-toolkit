@@ -28,7 +28,7 @@
     }
   },
   "definitions": {
-    "className": { "type": "string", "pattern": "^-?[_a-zA-Z][_a-zA-Z0-9-]*$" },
+    "className": { "type": "string", "pattern": "^\\S+$" },
     "tokenList": { "type": "array", "items": { "type": "string", "pattern": "^--[a-zA-Z0-9_-]+$" } },
     "markup": {
       "type": "object",
