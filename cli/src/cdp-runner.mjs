@@ -69,7 +69,7 @@ export async function runFlow(flow, { chromePath, flowDir = process.cwd(), outDi
 
   const { client, close } = await launchChrome(chromePath);
   try {
-    const { Page, Runtime, DOM, Input, Emulation } = client;
+    const { Page, Runtime, DOM, Emulation } = client;
     await Page.enable(); await Runtime.enable(); await DOM.enable();
 
     Runtime.exceptionThrown((p) => {

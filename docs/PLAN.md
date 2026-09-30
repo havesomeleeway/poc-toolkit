@@ -41,7 +41,8 @@ they're needed to avoid context rot; ship templates and flows, not just componen
 
 | # | Step | Size | Depends on |
 |---|------|------|------------|
-| 1 | Design-system profile + lookup | Medium | — |
+| 0 | Tests, lint, CI, hooks (**done**) | Medium | — |
+| 1 | Design-system profile + lookup | Medium | 0 |
 | 2 | Component tagging + linter | Medium | 1 |
 | 3 | `spec.json` + schema | Large | 2 |
 | 4 | Behaviours from `flow.json` | Small | 3 |
@@ -55,6 +56,42 @@ they're needed to avoid context rot; ship templates and flows, not just componen
 **First milestone:** steps 1 to 3. That fixes most of the drift and gives developers a real spec.
 
 ---
+
+## Step 0: Tests, lint, CI and hooks (done)
+
+Before this step the only automated check was `node --check` (does each file parse), and it only
+ran at publish time.
+
+What now exists:
+- **Unit tests** (`cli/test/unit/`, `node:test`): offline linter, design-system introspection, arg
+  parsing, config loading, flow schema, and every command run as a real process (no Chrome).
+- **End-to-end test** (`cli/test/e2e/`): `init → add-ds --none → build → verify` in a real browser.
+  `POC_KIT_REQUIRE_CHROME=1` makes a `DEGRADED` run fail, so CI can't pass without the browser.
+- **ESLint** (dev dependency only).
+- **`check:docs`**: the CLI and the docs agree (it caught `poc-kit query` missing from the README).
+- **`check:pack`**: every runtime file is in the npm package.
+- **`check:version`**: a PR that changes what users get must bump the version.
+- **CI on every PR** (`.github/workflows/ci.yml`), plus a Node 18 load check.
+- **Claude Code hook** (`.claude/settings.json`): lint, unit tests and docs check after each edit.
+
+Known issues found while writing tests, not fixed yet:
+- The offline linter flags a citation URL in visible text (recorded as a `todo` test).
+- `parseArgs` has no list of boolean flags, so `verify --quiet prototype.html` reads the filename
+  as the value of `--quiet`.
+
+## Testing rule for every later step
+
+Each step ships with its tests in the same PR:
+- **Linter rules:** small good and bad HTML examples in `cli/test/fixtures/`. Each rule has at least
+  one example that must pass and one that must fail.
+- **Schemas** (profile, spec, mapping): valid and invalid example files, checked with Ajv.
+- **`spec.json`:** a golden-file test. Build a sample prototype and compare the output with a saved
+  `spec.json`.
+- **Mapping:** a version mismatch and an unmapped component each give the right message.
+- **One shared sample prototype** in `cli/test/fixtures/sample/`, tagged correctly. The end-to-end
+  test and dogfooding both use it. Created in step 2.
+- **Docs:** new commands go in `cli/README.md`, and in `METHOD.md` + both adapters if they're part
+  of the workflow. `check:docs` enforces it.
 
 ## Step 1: Design-system profile and lookup
 

@@ -3,7 +3,7 @@
 
 import { resolve, dirname } from 'node:path';
 import { mkdirSync, writeFileSync, copyFileSync, readFileSync } from 'node:fs';
-import { parseArgs, TEMPLATES, head, ok, info, warn } from './util.mjs';
+import { parseArgs, TEMPLATES, head, ok, info } from './util.mjs';
 import { introspectDs } from './introspect-ds.mjs';
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36';

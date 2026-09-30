@@ -12,9 +12,27 @@ Before opening a PR:
 
 ```
 cd cli && npm install
-node --check bin/poc-kit.mjs && for f in src/*.mjs; do node --check "$f"; done
-# dogfood in a scratch dir: poc-kit init . && add-ds <something> && build && verify
+npm run ci          # syntax, lint, unit tests, docs sync, package contents
+npm run test:e2e    # init -> add-ds -> build -> verify in a real browser (needs Chrome; set CHROME_PATH)
 ```
+
+CI (`.github/workflows/ci.yml`) runs the same on every PR, plus:
+
+- **Version bump.** A PR that changes what npm users get (`bin/`, `src/`, `templates/`, `schema/`,
+  `cli/README.md`, or runtime fields in `package.json`) must bump `cli/package.json`'s version:
+  `npm version patch --no-git-tag-version`. Tests, scripts and dev dependencies don't need a bump.
+- **Node 18.** The CLI promises `node >= 18`; every module must still load there.
+
+`npm run check:docs` fails when the docs and the CLI disagree: a command missing from
+`cli/README.md`, a `poc-kit <x>` in any doc that isn't a real command, or `METHOD.md`, the Claude
+skill and the Copilot prompt naming different commands or a different number of steps.
+
+When you add code, add tests with it: unit tests in `cli/test/unit/` (`node:test`, no extra
+runner), and extend `cli/test/e2e/` when the change affects the build-and-verify path. Only
+`chrome-remote-interface` ships to users; dev dependencies (ESLint, Ajv) are fine.
+
+In Claude Code, `.claude/settings.json` runs lint, unit tests and the docs check after each edit
+under `cli/` or to the method docs, and hands failures back to the agent.
 
 ## Releasing the CLI to npm
 

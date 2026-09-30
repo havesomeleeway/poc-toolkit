@@ -1,0 +1,56 @@
+name: CI
+
+# Runs on every PR and on pushes to main. publish-cli.yml still does the npm release;
+# this catches problems before they're merged.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # check:version diffs against the base branch
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+
+      - run: npm ci
+
+      - name: Syntax, lint, unit tests, docs sync, package contents
+        run: npm run ci
+
+      - name: Version bumped if users get a change
+        if: github.event_name == 'pull_request'
+        run: npm run check:version -- origin/${{ github.base_ref }}
+
+      - name: End to end in a real browser
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          POC_KIT_CHROME_FLAGS: --no-sandbox --disable-dev-shm-usage
+        run: npm run test:e2e
+
+  # The CLI promises Node >= 18. Make sure every module still loads there.
+  node18:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - run: npm ci --omit=dev
+      - run: npm run check
+      - run: node bin/poc-kit.mjs --help

@@ -1,6 +1,6 @@
 {
   "name": "poc-kit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Build one self-contained, offline, design-system-styled interactive POC from a requirement — mocked logic, verified by driving it in a headless browser.",
   "type": "module",
   "bin": {
@@ -18,6 +18,13 @@
   ],
   "scripts": {
     "check": "node --check bin/poc-kit.mjs && for f in src/*.mjs; do node --check \"$f\"; done",
+    "lint": "eslint .",
+    "test": "node --test \"test/unit/**/*.test.mjs\"",
+    "test:e2e": "node --test \"test/e2e/**/*.test.mjs\"",
+    "check:docs": "node scripts/check-docs.mjs",
+    "check:pack": "node scripts/check-pack.mjs",
+    "check:version": "node scripts/check-version-bump.mjs",
+    "ci": "npm run check && npm run lint && npm test && npm run check:docs && npm run check:pack",
     "prepublishOnly": "npm run check",
     "release": "npm version patch -m \"cli: v%s\" --tag-version-prefix=poc-kit-v && git push --follow-tags && npm publish"
   },
@@ -44,5 +51,11 @@
   "license": "MIT",
   "dependencies": {
     "chrome-remote-interface": "^0.33.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "ajv": "^8.20.0",
+    "eslint": "^9.39.5",
+    "globals": "^17.12.0"
   }
 }

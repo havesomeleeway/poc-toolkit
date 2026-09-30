@@ -26,6 +26,7 @@ poc-kit add-ds <npm | url | --none>   Acquire a design-system stylesheet offline
 poc-kit add-font <family | ./file>    Embed a font as a base64 @font-face.
 poc-kit build                         Inline vendor/* into the markers -> prototype.html, lint offline.
 poc-kit verify [file] [--flow f.json] Static checks always; headless-browser drive when Chrome is present.
+poc-kit query --selector "<css>"      Print an element's computed style, without reading the whole file.
 poc-kit handoff                       Emit a blank HANDOFF.md skeleton.
 poc-kit copilot-init                  Drop the Copilot prompt + instructions into ./.github/.
 ```
@@ -48,6 +49,7 @@ poc-kit handoff
 - `POC_KIT_CHROME_FLAGS` — extra Chrome flags (containers/CI usually need
   `"--no-sandbox --disable-dev-shm-usage"`).
 - `POC_KIT_NO_CHROME=1` — force the static-only (`DEGRADED`) path.
+- `POC_KIT_REQUIRE_CHROME=1` — make a `DEGRADED` run fail instead of pass (use in CI).
 - `POC_KIT_DEBUG=1` — full stack traces on error.
 
 MIT.

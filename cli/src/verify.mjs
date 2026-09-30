@@ -60,6 +60,11 @@ export async function run(argv) {
   if (!chrome) {
     head('DEGRADED — headless Chrome not found; static checks only');
     info('set CHROME_PATH or install Chrome/Chromium to run the interaction flow.');
+    // CI sets this so a missing browser fails loudly instead of passing on static checks.
+    if (process.env.POC_KIT_REQUIRE_CHROME) {
+      fail('POC_KIT_REQUIRE_CHROME is set — a degraded run does not count');
+      process.exit(1);
+    }
     process.exit(staticOk ? 0 : 1);
   }
 
