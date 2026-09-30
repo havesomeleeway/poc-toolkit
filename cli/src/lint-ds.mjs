@@ -13,7 +13,7 @@
 
 import { scanHtml, ancestors } from './html-scan.mjs';
 import { rules as cssRules } from './css-scan.mjs';
-import { profileClasses, suggest, describeMarkup } from './ds-profile.mjs';
+import { profileClasses, profileTokens, suggest, describeMarkup } from './ds-profile.mjs';
 
 export const RULES = {
   'unknown-class': 'a class that is not in the design-system profile or layout.css',
@@ -50,6 +50,7 @@ export function lintDs(html, { profile, layoutClasses = [], allow = [] } = {}) {
 
   const components = new Map(profile.components.map((c) => [c.name, c]));
   const known = new Set([...profileClasses(profile), ...layoutClasses, ...SCAFFOLD_CLASSES]);
+  const tokens = new Set(profileTokens(profile));
 
   // --- features --------------------------------------------------------------------------------
   const declared = new Map();
@@ -109,7 +110,7 @@ export function lintDs(html, { profile, layoutClasses = [], allow = [] } = {}) {
       if (!declared.has(f)) add('unknown-feature', el.line, f, `data-feature="${f}" is not declared in <script type="application/json" id="poc-features">`);
     }
 
-    if ('style' in a) checkInlineStyle(a.style, el.line, label, add);
+    if ('style' in a) checkInlineStyle(a.style, el.line, label, add, tokens);
 
     if ('data-component' in a) checkComponent(el, components, profile, add);
     else if ('data-part' in a) checkPart(el, idx, elements, components, add);
@@ -261,15 +262,29 @@ function looksLike(el, markup) {
   return true;
 }
 
-function checkInlineStyle(style, line, label, add) {
+// style="" may set layout, local custom properties (data values like --pct: 42%), and visual
+// properties whose value is made only of design-system tokens. It may not hard-code a visual value
+// or override a design-system token.
+function checkInlineStyle(style, line, label, add, tokens) {
   for (const decl of style.split(';')) {
     const colon = decl.indexOf(':');
     if (colon === -1) continue;
     const prop = decl.slice(0, colon).trim().toLowerCase(), value = decl.slice(colon + 1).trim();
-    if (COLOR.test(value)) add('raw-color', line, label, `${label}: style="${prop}: ${value}" — use a design-system token`);
-    else if (prop.startsWith('--') && !prop.startsWith('--pk-')) add('inline-style', line, label, `${label}: style sets ${prop} — design-system tokens are not overridden per element`);
-    else if (VISUAL_PROP.test(prop)) add('inline-style', line, label, `${label}: style="${prop}: …" — use the design system's classes, or a .pk-* layout primitive and its --pk-* settings`);
+    const shown = `${prop}: ${value.length > 60 ? value.slice(0, 57) + '…' : value}`;
+    if (COLOR.test(value)) add('raw-color', line, label, `${label}: style="${shown}" — use a design-system token`);
+    else if (prop.startsWith('--')) {
+      if (tokens.has(prop)) add('inline-style', line, label, `${label}: style="${shown}" overrides a design-system token for one element`);
+    } else if (VISUAL_PROP.test(prop) && !tokensOnly(value, tokens)) {
+      add('inline-style', line, label, `${label}: style="${shown}" — use a design-system token (var(--…)), the design system's classes, or a .pk-* layout primitive`);
+    }
   }
+}
+
+// "var(--kumo-danger)", "0", "var(--a) var(--b)": nothing but design-system tokens and neutral keywords.
+function tokensOnly(value, tokens) {
+  let unknown = false;
+  const rest = value.replace(/var\(\s*(--[\w-]+)\s*(?:,[^()]*)?\)/g, (_, t) => { if (!tokens.has(t)) unknown = true; return ' '; });
+  return !unknown && /^(\s|0|auto|none|inherit|initial|unset|transparent|currentcolor|solid|dashed|!important)*$/i.test(rest);
 }
 
 function insideHead(elements, idx) {

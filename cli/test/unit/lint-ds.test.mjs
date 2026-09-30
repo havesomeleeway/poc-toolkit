@@ -96,11 +96,21 @@ test('screen-untagged and duplicate screens', () => {
   failsWith('<section class="screen" data-screen="one"></section><section class="screen" data-screen="one"></section>', 'duplicate-id');
 });
 
-test('inline-style: visual properties and token overrides fail; layout settings pass', () => {
+test('inline-style: hard-coded visual values and token overrides fail', () => {
   passes('<div class="pk-cluster" style="--pk-gutter: var(--nk-space); display: flex; max-width: 40rem"></div>');
-  failsWith('<div style="padding: 12px"></div>', 'inline-style');
+  const r = failsWith('<div style="padding: 12px"></div>', 'inline-style');
+  assert.match(r.violations[0].message, /padding: 12px/, 'the message shows the value');
   failsWith('<div style="font-size: 20px"></div>', 'inline-style');
   failsWith('<div style="--nk-accent: var(--nk-fg)"></div>', 'inline-style');
+  failsWith('<div style="color: var(--not-a-token)"></div>', 'inline-style');
+  failsWith('<div style="margin: calc(var(--nk-space) * 2)"></div>', 'inline-style');
+});
+
+test('inline-style: local custom properties and token-only values pass', () => {
+  passes('<div style="--d: 40%; --pct: 0.42"></div>');
+  passes('<span style="color: var(--nk-accent); border-color: var(--nk-border); background: transparent"></span>');
+  passes('<p style="margin-top: var(--nk-space)"></p>');
+  passes('<p style="margin: 0"></p>');
 });
 
 test('raw-color: in style="" and in the page\'s own <style>; build markers are ignored', () => {

@@ -119,8 +119,9 @@ poc-kit build         # inlines vendor/* -> prototype.html, lints offline, then 
 
 `build` **fails** when the source drifts from the design system: a class that isn't in the profile
 or `layout.css`, an untagged control or component, a tag naming a component, variant, state or part
-the profile doesn't have, an element that doesn't have its component's markup, a `style=""` that sets
-colour, type, spacing or borders, a hard-coded colour, a missing or duplicate id, or an undeclared
+the profile doesn't have, an element that doesn't have its component's markup, a `style=""` that
+hard-codes colour, type, spacing or borders (token values like `var(--…)` are fine) or overrides a
+design-system token, a hard-coded colour, a missing or duplicate id, or an undeclared
 or unused feature. Fix the markup. When an exception is genuinely right, add it to
 `build.config.json` with a reason — it shows up in every build and in the handoff:
 
