@@ -54,8 +54,12 @@ they're needed to avoid context rot; ship templates and flows, not just componen
 | 6b | Revisions and change list | Medium | 6 |
 | 7 | Developer instructions | Small | 6 |
 | 8 | Rendered style audit | Medium | 1 |
-| 9 | Screen templates | Medium | 2 |
+| 9 | Screen templates | Medium | 2, R1 |
 | R1 | Research: page-level compositions (project extensions) | Research | — |
+
+R1 blocks only step 9 (R1 decides whether screen templates are compositions). Steps 3 and 6b gain
+a composition node kind when R1 lands (an addition, with a `specVersion` bump); step 8 may need an
+exception for composition styling. Order: 3 → 4 → 5 → 6 → 6b → 7 now; R1 before 8 and 9.
 | — | Docs updates | Small | alongside each step |
 
 **First milestone:** steps 1 to 3. That fixes most of the drift and gives developers a real spec.
