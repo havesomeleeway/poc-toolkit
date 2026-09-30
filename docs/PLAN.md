@@ -55,6 +55,7 @@ they're needed to avoid context rot; ship templates and flows, not just componen
 | 7 | Developer instructions | Small | 6 |
 | 8 | Rendered style audit | Medium | 1 |
 | 9 | Screen templates | Medium | 2 |
+| R1 | Research: page-level compositions (project extensions) | Research | — |
 | — | Docs updates | Small | alongside each step |
 
 **First milestone:** steps 1 to 3. That fixes most of the drift and gives developers a real spec.
@@ -364,6 +365,71 @@ Tasks:
 3. Record each screen's template in the spec. Deviations go into `gaps`.
 
 Done when: two separate runs of the same prompt produce the same screen structure.
+
+## Field test: hkex_2 (Kumo), what it showed
+
+Tried steps 1–2 on a real prototype built with `@cloudflare/kumo` 2.13.2 before tagging it:
+
+| Rule | Count | Reading |
+|---|---|---|
+| `unknown-class` | 151 | A hand-made design system inside the prototype: its own `.btn`/`.btn--primary`, text scale (`.muted`, `.xsmall`, `.eyebrow`), layout (`.shell`, `.row`, `.gap`) and page sections (`.brief-hero`, `.band`) |
+| `inline-style` | 56 | Off-scale values: `margin-top: 26px`, `padding: 9px 14px`, `font-size: 1.375rem` |
+| `raw-color` | 14 | Hard-coded colours |
+| `untagged-widget` / `screen-untagged` | 54 / 7 | Not tagged yet — expected |
+
+Lessons:
+- **Utility-first design systems** (Tailwind-based, components shipped as React) keep components in
+  code, not CSS: 1,101 of Kumo's 1,114 classes are utilities, so a draft profile finds almost no
+  components. `add-ds` now says so. Decision: no Kumo profile for now.
+- **Prebuilt utility CSS only contains the utilities the library itself uses.** An agent wanting
+  `mt-6` finds no such class and falls back to inline styles or invented classes — likely a cause
+  of this prototype's drift.
+- Fixed from this test: escaped class names (`h-\[1\.25em\]`) were cut short and broke the draft;
+  local custom properties (`--d: 40%`) and token-only inline values (`color: var(--kumo-danger)`)
+  were wrongly rejected.
+- Open: allow `1px`/`0` in border and outline properties when the colour is a token
+  (`border-bottom: 1px solid var(--color-kumo-hairline)` currently fails).
+- The biggest remaining gap is page-specific compositions (`.brief-hero`, the app shell): real,
+  needed, and not in any design system. See R1.
+
+## R1 (research): page-level compositions — "project extensions"
+
+**The problem.** Prototypes need things the design system doesn't have: an app shell, a brief hero,
+an opportunity grid. Today the only options are to invent classes (the linter fails them) or add
+`allow` entries (meant for rare exceptions). Naming them as components is the wrong model: they
+aren't atoms like a Button. They *contain* many design-system components and offer their own
+affordances (a hero with a call to action, a shell with navigation and search).
+
+**Research before designing anything.** Questions to answer:
+
+1. **Taxonomy.** What tier is this? Candidates from existing practice: Atomic Design (organism /
+   template), "patterns" vs "components" (GOV.UK Design System, Carbon), canonical layouts
+   (Material), templates and flows (Stripe's Sail, per the talk that started this plan), core vs
+   product-level vs local components (Nathan Curtis's design-system tiers). Pick one vocabulary.
+2. **What a declaration says.** Probably: name, purpose, its regions/slots, which design-system
+   components each region may hold, the affordances it offers (actions, states, interactions),
+   the data it shows, responsive behaviour, and its landmark/role for accessibility. Which of these
+   earn their place, and which are guesses an agent would fill with noise?
+3. **Its own styling.** Should a composition be allowed any CSS of its own, or only layout
+   (`.pk-*`) and design-system components inside it? Where does "a composition" end and "a new
+   component the design system is missing" begin — and should the handoff say which it is?
+4. **How it's checked.** The linter would check that a composition is declared, its regions hold
+   only allowed children, and nothing inside is invented.
+5. **How it's handed off.** Developers build it from their own kit's components. The spec needs a
+   node kind for it (regions containing component nodes), and the handoff marks it "custom — not in
+   <design system>". How does this map onto the mapping file (step 5)?
+6. **Lifecycle.** Scope: one prototype, or shared across prototypes of the same product (a layer
+   between the design-system profile and the project)? How does a composition get promoted into
+   the design system (contribution models)? How do duplicates get noticed?
+7. **Relation to features and templates.** A composition often *is* a feature's UI (step 6b), and
+   step 9's screen templates are compositions of screens. One concept or three?
+
+**Output of R1:** a short decision note (vocabulary, declaration format, what the linter and
+handoff do with it), then an implementation step inserted into the build order.
+
+**Effect on other steps.** Step 3 can go ahead with component nodes only. When R1 lands, the spec
+gains a composition node kind with a `specVersion` bump — that is what the version field is for.
+Until then, prototypes use `allow` entries for page-specific classes, with reasons.
 
 ## Docs updates (alongside each step)
 
