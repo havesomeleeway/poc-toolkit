@@ -1,6 +1,6 @@
 # Plan: consistent prototypes and a stack-neutral handoff
 
-Status: agreed, not started. Branch: `claude/eager-goldberg-zeld2b`.
+Status: steps 0–2 done; paused before step 3. Branch: `claude/eager-goldberg-zeld2b`.
 
 ## The two problems
 
@@ -22,6 +22,9 @@ they're needed to avoid context rot; ship templates and flows, not just componen
 - **Capture intent while building.** Each element records what it *is* when it's written.
 - **The handoff says what, not how.** No HTML, CSS or framework terms in the spec.
 - **`prototype.html` is a visual reference only.** `spec.json` is the main deliverable.
+- **The handoff is written for machines first.** A developer's agent reads it, so it is structured,
+  split by unit of work, free of repetition, and measured in tokens. People get a short summary and
+  can render any part as text on demand.
 - **Shared knowledge is written once.** Design-system profiles and mapping files are maintained per
   design system / target stack and reused across projects, not rebuilt per prototype.
 
@@ -37,6 +40,9 @@ they're needed to avoid context rot; ship templates and flows, not just componen
 - Handoffs are **incremental**. A prototype is one project that changes over time (features 1–10,
   then 1–11, then 2–11). Each handoff is a numbered revision, and developers get the list of changes
   since any earlier revision, not a fresh spec to reverse-engineer.
+- The handoff is **machine-first and budgeted**: one small entry file, one file per feature and per
+  screen, shared facts stated once, JSON as the only source (no Markdown twins), and a token budget
+  per file that `handoff` measures. See "Handoff format".
 
 ---
 
@@ -99,6 +105,8 @@ Each step ships with its tests in the same PR:
 - **Mapping:** a version mismatch and an unmapped component each give the right message.
 - **One shared sample prototype** in `cli/test/fixtures/sample/`, tagged correctly. The end-to-end
   test and dogfooding both use it. Created in step 2.
+- **Handoff size:** the sample's handoff is checked against the token budgets in a test, so a
+  change that bloats the output fails CI.
 - **Docs:** new commands go in `cli/README.md`, and in `METHOD.md` + both adapters if they're part
   of the workflow. `check:docs` enforces it.
 
@@ -207,6 +215,59 @@ Also:
 Done when: an invented class, an untagged button or a hard-coded colour fails `poc-kit build` with
 a clear message.
 
+## Handoff format: written for machines
+
+A developer's agent should load **only what the task in front of it needs**: the same "look it up
+when you need it" idea as `poc-kit ds lookup`, applied to the handoff. The format rules below apply
+to steps 3–7.
+
+**Layout**
+
+```
+handoff/
+  index.json          entry point, small: what this is, read order, one line per slice
+  components.json     each design-system component used, stated once: docs link, variants and
+                      states used, designed/not-designed states, mapped target component per target
+  tokens.json         only the tokens used (W3C DTCG)
+  features/<id>.json  one per feature: its nodes, transitions, behaviours, data, mocked logic
+  screens/<id>.json   one per screen: its layout tree, and nodes that belong to no feature
+  changes.json        (revisions after the first) what changed, as ids, pointing at slices
+  AGENTS.md           short instructions for the developer's agent (step 7)
+  HANDOFF.md          one page for people: what it is, how to run it, real vs mocked, open questions
+  assets/             screenshots and prototype.html: listed in index.json, not meant to be read
+```
+
+**Rules**
+
+1. **One entry point.** `index.json` names the revision, the design system, the read order, and
+   each slice with its title, file and size in tokens. An agent reads it first and then loads only
+   the slices it needs.
+2. **Split by unit of work.** A feature slice holds everything needed to build that feature, so an
+   agent implementing `export-csv` reads one file plus the shared tables, not the whole spec.
+3. **State shared facts once.** Nodes name their component and variant; docs links, state
+   coverage and mappings live once in `components.json`. Tokens are referenced by name.
+4. **JSON is the only source.** No Markdown copies of the same content (`behaviours.md`,
+   `changes.md`, `logic.md` are dropped). People run `poc-kit handoff show <feature | screen |
+   node | changes>` to read any part as text. `HANDOFF.md` is capped at one page and does not
+   restate the spec.
+5. **Compact by default.** Omit empty fields, defaults and nulls. Keys stay readable words (short
+   cryptic keys save little and cost comprehension). Output is sorted and stable, so revisions diff
+   cleanly. Whether pretty-printed or one-object-per-line JSON is cheaper is decided by measuring
+   both on the sample and on hkex_2.
+6. **Nothing an agent shouldn't read is in its path.** `prototype.html` and screenshots sit in
+   `assets/`, listed in `index.json` as visual references only. No schema files are copied in:
+   each file carries `specVersion` and a `$schema` URL.
+7. **Changes first.** For a revision, `changes.json` lists added, removed and changed ids and the
+   slices they're in. An agent reads it, then loads only the touched slices. Removed items keep a
+   short description, since their slice no longer exists.
+8. **Measured.** `poc-kit handoff` estimates tokens per file (characters ÷ 4, labelled as an
+   estimate), prints the table, and warns over budget (fails with `--strict`). Starting budgets, to
+   be calibrated on the sample and hkex_2: `index.json` ≤ 1,500; each slice ≤ 4,000;
+   `components.json` ≤ 3,000; `AGENTS.md` ≤ 800. A slice over budget is a sign the feature should
+   be split.
+9. **Readable without poc-kit.** Developers may not have poc-kit; the files alone are enough.
+   `handoff show` is a convenience.
+
 ## Step 3: `spec.json` and its schema
 
 Tasks:
@@ -233,21 +294,28 @@ Spec rules:
 - Token names, never raw values.
 - Stable IDs on everything.
 - Flat `nodes{}` referenced by ID, not deep nesting.
-- Missing states show as `not-designed`, not silently absent.
-- Keep it small. Split per screen if it grows.
+- Missing states show as `not-designed`, not silently absent — once per component in
+  `components.json`, not per node.
+- The spec is the model behind the handoff files. It is **written out split**, per "Handoff
+  format": `index.json`, `components.json`, `features/*.json`, `screens/*.json`. There is no single
+  `spec.json` in the handoff; `poc-kit` can print the whole model with `handoff show --all` for
+  debugging.
 
-Done when: `spec.json` validates, and every tagged element and every screen transition is in it.
+Done when: the split files validate, every tagged element and every screen transition appears in
+exactly one slice, and the sample handoff is within the token budgets.
 
 ## Step 4: Behaviours from `flow.json`
 
 Tasks:
 1. Add optional `given` / `when` / `then` text to steps in `cli/schema/flow.schema.json`.
-2. New `cli/src/behaviours.mjs` that writes `handoff/behaviours.md` (numbered Given/When/Then lines)
-   and `handoff/behaviours.json`, both referring to node IDs.
+2. New `cli/src/behaviours.mjs` that turns the flow into Given/When/Then entries referring to node
+   IDs. Each behaviour goes into the slice of the feature (or screen) it exercises; there is no
+   separate behaviours file. `handoff show behaviours` lists them all for people.
 3. Optional, web only: `--playwright` also writes a Playwright test file. Not part of the core
    handoff.
 
-Done when: every flow step appears as a readable Given/When/Then line tied to a node ID.
+Done when: every flow step appears as a Given/When/Then entry tied to a node ID, in exactly one
+slice.
 
 ## Step 5: Mapping file
 
@@ -272,7 +340,8 @@ Tasks:
 2. `build.config.json` gets an optional `mappings: ["path-or-url", …]`, one per target stack.
 3. `lint-ds.mjs` reports, per target: components used that are `none`, missing from the mapping,
    or `partial`. Default is warn. A config flag can make it block.
-4. `spec.mjs` adds, per node and per target, the mapped component and status.
+4. The mapped component and status per target go into `components.json`, once per component —
+   not on every node, and not as a copy of the whole mapping file.
 5. New `poc-kit mapping init --target <name>` that writes a starter mapping with every profile
    component listed and `status: "none"`.
 6. Check that `source` matches the profile's name and version. A version mismatch is a warning.
@@ -288,27 +357,17 @@ Tasks:
    - a `// @poc-logic` section for mocked calculations
    The linter checks they exist.
 2. Rewrite `cli/src/handoff.mjs`: `poc-kit handoff` runs build, verify, spec and behaviours, then
-   writes:
+   writes the layout in "Handoff format". Mock data and mocked logic go into the feature slice
+   that uses them: data as shapes plus one small sample, logic as inputs, outputs and a one-line
+   description, marked as fake.
+3. `poc-kit handoff show <feature | screen | node | changes | behaviours> [--md]` renders any part
+   for people.
+4. Token table and budget check, per rule 8.
+5. `HANDOFF.md` is generated: design system and version, how to run, real vs mocked (counts and
+   the feature list), open questions and allowed exceptions. One page.
 
-```
-handoff/
-  spec.json
-  spec.schema.json
-  tokens.json
-  mapping.<target>.json   (copies of the mappings used, if any)
-  behaviours.md / behaviours.json
-  mock-data.json
-  logic.md                (each mocked calculation: inputs, outputs, marked as fake)
-  screens/*.png           (per screen and key state, named by node ID)
-  prototype.html          (visual reference only)
-  HANDOFF.md              (design system used, real vs mocked, how to run, gaps, open questions)
-  IMPLEMENTING.md         (instructions for the developer's agent)
-```
-
-3. `HANDOFF.md` starts with a short summary: design system name, version and docs link; list of
-   components used, each with its docs link; mapping status per target.
-
-Done when: one command produces a folder a developer could build from without opening the HTML.
+Done when: one command produces a folder a developer's agent could build from without opening
+the HTML, and the sample's handoff is within budget.
 
 ## Step 6b: Revisions and change list
 
@@ -321,7 +380,7 @@ Tasks:
 2. `poc-kit handoff` writes `handoffs/r<N>/` (a full bundle, as in step 6) and
    `handoffs/r<N>/revision.json`: revision number, date, the revision it follows, the requirement
    source. `handoffs/latest` points at the newest. Earlier revisions are kept.
-3. The change list, `changes.md` + `changes.json`, is written against the previous revision by
+3. The change list, `changes.json`, is written against the previous revision by
    default, or any earlier one with `--since r<N>` (a developer may jump from r1 to r3). It lists:
    - features added, removed, changed (and which screens and nodes that touched)
    - screens and nodes added, removed, changed (component, variant, props, states)
@@ -329,7 +388,11 @@ Tasks:
    - changes to mock data shapes and tokens
 4. `poc-kit diff <revision | folder> <revision | folder>` prints the same comparison without
    writing a handoff.
-5. Guard against ID churn: when a revision removes and adds many nodes of the same component, IDs
+5. `changes.json` holds ids and the slices they're in, not the content again; an agent follows the
+   pointers. `handoff show changes` renders it for people.
+6. Only the latest revision is in an agent's path (`handoffs/latest`). Earlier revisions exist for
+   `--since`, not for reading.
+7. Guard against ID churn: when a revision removes and adds many nodes of the same component, IDs
    were probably renamed rather than the UI changed. `handoff` warns and names them instead of
    producing a misleading change list.
 
@@ -338,16 +401,17 @@ with the nodes and behaviours each touched, and `--since r1` from r3 shows both.
 
 ## Step 7: Developer instructions
 
-Write `cli/templates/IMPLEMENTING.md`, a short prompt for any coding agent:
-- Build from `spec.json`. Use `prototype.html` only to compare visually.
-- For each component, use the mapping file. If there is no mapping, choose the closest component in
-  your kit, list it under "gaps", and propose an update to the shared mapping file. Do not invent
-  new components silently.
-- Use `tokens.json` for values.
-- Treat everything marked `mock` as needing real data.
-- Check your build against `behaviours.md`.
-- If `changes.md` exists, implement only the changes. A removed feature means deleting its code and
-  tests, not hiding it.
+Write `cli/templates/AGENTS.md` (the name coding agents already look for; within the 800-token
+budget), a short procedure rather than prose:
+1. Read `index.json`. If `changes.json` exists, read it and work only on what it lists.
+2. For each task, load only its slice (`features/<id>.json` or `screens/<id>.json`).
+3. Look components up in `components.json`; use the mapped target component. No mapping → pick
+   the closest in your kit, record it as a gap, propose an update to the shared mapping file.
+   Never invent a component silently.
+4. Use `tokens.json` for values. Treat everything marked `mock` as needing real data.
+5. Implement the slice's behaviours as tests.
+6. Don't read `assets/`. Look at a screenshot only to check a visual detail.
+7. A removed feature means deleting its code and tests, not hiding it.
 
 ## Step 8: Rendered style audit
 
