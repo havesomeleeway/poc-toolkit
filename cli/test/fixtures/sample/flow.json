@@ -1,0 +1,18 @@
+{
+  "url": "prototype.html",
+  "viewport": [1200, 900],
+  "a11y": true,
+  "steps": [
+    { "expectVisible": "[data-screen=overview]" },
+    { "expectText": "#revenue", "contains": "120k" },
+    { "setValue": "#region", "to": "north" },
+    { "expectText": "#revenue", "contains": "70k" },
+    { "click": "#export" },
+    { "expectVisible": "#export-status" },
+    { "click": "[data-id='overview.details']" },
+    { "expectVisible": "[data-screen=details]" },
+    { "expectText": "#details-region", "contains": "north" },
+    { "expectNoConsoleErrors": true },
+    { "screenshot": "details" }
+  ]
+}

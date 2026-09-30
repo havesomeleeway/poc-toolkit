@@ -1,0 +1,114 @@
+<!doctype html>
+<!--
+  poc-kit sample prototype: a small sales dashboard, tagged against the neutral kit.
+  Used by the tests and for dogfooding. Every rule the design-system linter checks passes here.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales dashboard (sample)</title>
+<style>/*__LAYOUT_CSS__*/</style>
+<style>/*__FONT_CSS__*/</style>
+<style>/*__DS_CSS__*/</style>
+<style>
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<main id="app" class="pk-wrapper">
+  <section class="screen pk-flow" id="overview" data-screen="overview">
+    <h1>Sales overview</h1>
+    <p class="muted">Sample data — illustrative only.</p>
+
+    <div class="pk-cluster" data-feature="filter-by-region">
+      <label data-component="Label" data-id="overview.region-label" for="region">Region</label>
+      <select data-component="Select" data-id="overview.region" id="region">
+        <option value="all">All regions</option>
+        <option value="north">North</option>
+        <option value="south">South</option>
+      </select>
+    </div>
+
+    <div class="pk-grid">
+      <div class="card" data-component="Card" data-id="overview.revenue">
+        <h2>Revenue</h2>
+        <p id="revenue" data-mock="true">about 120k</p>
+      </div>
+      <div class="card" data-component="Card" data-id="overview.orders">
+        <h2>Orders</h2>
+        <p id="orders" data-mock="true">about 900</p>
+      </div>
+    </div>
+
+    <table data-component="Table" data-id="overview.top-products">
+      <thead><tr><th>Product</th><th>Units</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <div class="pk-cluster">
+      <button type="button" data-component="Button" data-id="overview.details" data-nav="details">See details</button>
+      <button type="button" data-component="Button" data-variant="secondary" data-id="overview.export"
+        data-feature="export-csv" id="export">Export CSV</button>
+    </div>
+    <p id="export-status" class="muted" data-feature="export-csv" hidden>Export prepared (sample).</p>
+  </section>
+
+  <section class="screen pk-flow" id="details" data-screen="details" hidden>
+    <h1>Details</h1>
+    <p>Notes for <span id="details-region">all regions</span>.</p>
+    <label data-component="Label" data-id="details.note-label" for="note">Note</label>
+    <input data-component="TextField" data-id="details.note" id="note" type="text">
+    <button type="button" data-component="Button" data-variant="secondary" data-id="details.back" data-nav="overview">Back</button>
+  </section>
+</main>
+
+<script type="application/json" id="poc-features">
+[
+  { "id": "filter-by-region", "title": "Filter the dashboard by region", "source": "REQ-1" },
+  { "id": "export-csv", "title": "Export the product table as CSV", "source": "REQ-2" }
+]
+</script>
+
+<script>
+(function () {
+  "use strict";
+  var screens = function () { return Array.prototype.slice.call(document.querySelectorAll(".screen")); };
+  function showScreen(id) {
+    screens().forEach(function (s) { s.hidden = s.id !== id; });
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-nav]");
+    if (t) { e.preventDefault(); showScreen(t.getAttribute("data-nav")); }
+  });
+
+  // Mocked data: deterministic, labelled as sample.
+  var DATA = {
+    all:   { revenue: "about 120k", orders: "about 900", products: [["Widgets", 410], ["Gadgets", 290]] },
+    north: { revenue: "about 70k",  orders: "about 500", products: [["Widgets", 260], ["Gadgets", 140]] },
+    south: { revenue: "about 50k",  orders: "about 400", products: [["Widgets", 150], ["Gadgets", 150]] }
+  };
+  function render(region) {
+    var d = DATA[region];
+    document.getElementById("revenue").textContent = d.revenue;
+    document.getElementById("orders").textContent = d.orders;
+    document.getElementById("details-region").textContent = region === "all" ? "all regions" : region;
+    var rows = document.getElementById("rows");
+    rows.textContent = "";
+    d.products.forEach(function (p) {
+      var tr = document.createElement("tr");
+      p.forEach(function (v) { var td = document.createElement("td"); td.textContent = v; tr.appendChild(td); });
+      rows.appendChild(tr);
+    });
+  }
+  document.getElementById("region").addEventListener("change", function (e) { render(e.target.value); });
+  document.getElementById("export").addEventListener("click", function () {
+    document.getElementById("export-status").hidden = false;
+  });
+  render("all");
+  showScreen("overview");
+})();
+</script>
+</body>
+</html>

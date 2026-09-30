@@ -28,7 +28,8 @@ poc-kit ds list                       Every component in the design-system profi
 poc-kit ds lookup <Component>         One component: markup, variants, states, parts, tokens, example.
 poc-kit ds validate [file]            Check a profile, and that it matches vendor/ds.css.
 poc-kit add-font <family | ./file>    Embed a font as a base64 @font-face.
-poc-kit build                         Inline vendor/* into the markers -> prototype.html, lint offline.
+poc-kit build                         Inline vendor/* into the markers -> prototype.html, lint offline,
+                                      then lint the source against the design-system profile.
 poc-kit verify [file] [--flow f.json] Static checks always; headless-browser drive when Chrome is present.
 poc-kit query --selector "<css>"      Print an element's computed style, without reading the whole file.
 poc-kit handoff                       Emit a blank HANDOFF.md skeleton.

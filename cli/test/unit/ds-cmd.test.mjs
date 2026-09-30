@@ -85,9 +85,11 @@ test('add-ds ./local.css drafts a profile, and build warns that it is a draft', 
   assert.deepEqual(p.components.map((c) => c.name), ['Btn']);
   assert.match(r.out, /is a draft/);
 
+  // The scaffold's placeholder buttons say data-component="Button"; this design system calls it Btn.
   const b = pk(dir, ['build']);
-  assert.equal(b.code, 0, b.out);
   assert.match(b.out, /DRAFT profile/);
+  assert.equal(b.code, 1);
+  assert.match(b.out, /data-component="Button" is not in brand/);
 });
 
 test('add-ds --profile with no stylesheet argument fetches the stylesheet the profile names', () => {

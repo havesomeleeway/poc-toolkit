@@ -35,13 +35,15 @@ direction — presume none of them.** Do not add features I did not ask for.
    needs reviewing); optionally `npx poc-kit add-font "<Family>"`. Look each component up with
    `npx poc-kit ds lookup <Component>` as you use it (`npx poc-kit ds list` for all).
 5. **Scaffold & build:** `npx poc-kit init .`, fill `prototype.src.html` with only the screens the
-   slice needs, then `npx poc-kit build`.
+   slice needs, **tagged** (`data-screen`, `data-component` + `data-id`, `data-variant`/`data-state`,
+   `data-feature`; features declared in the `poc-features` block), then `npx poc-kit build`. The
+   build fails on design-system drift — fix the markup; add a reasoned `allow` entry to
+   `build.config.json` only when an exception is genuinely right.
 6. **Mock the logic:** deterministic, inspectable, clearly labelled illustrative, never fake
    precision (no invented IDs/decimals, no real names).
 7. **Follow the design system's own guidance** for layout, navigation, status and actions. Decide
-   cross-screen conventions once and keep them consistent. Before adding a new badge/chip/pill/
-   label recipe, check whether one already exists (same property shape — border-radius + padding
-   + font-size together — is the tell) and reuse or extend it instead of adding another variant.
+   cross-screen conventions once and keep them consistent. Don't invent a badge/chip/pill/label
+   recipe: look up the design system's own and use a variant of it.
 8. **Verify by driving it:** write `flow.json` (steps: `click`, `setValue`, `expectVisible`,
    `expectText`, `expectNoConsoleErrors`, `screenshot`), run `npx poc-kit verify`. **Zero console
    errors is a gate.** Fix and re-run until it prints `PASS`; then review the screenshots in

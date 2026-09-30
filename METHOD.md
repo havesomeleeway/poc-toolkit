@@ -96,8 +96,36 @@ convention are there to extend; replace them if the flow needs something else.
 these instead of inventing ad hoc inline flex/grid — they exist precisely so structure doesn't
 have to be improvised per build.
 
+**Tag what you build.** The tags are how `build` checks the prototype against the design system,
+and how the handoff describes it without anyone reverse-engineering the HTML:
+
+| Tag | On | Example |
+|---|---|---|
+| `data-screen` | each `.screen` | `data-screen="checkout"` |
+| `data-component` | each design-system component (`poc-kit ds lookup <Component>`) | `data-component="Button"` |
+| `data-variant`, `data-state` | that component; space-separated | `data-variant="primary lg"` |
+| `data-part` | a named part inside a component | `data-part="body"` |
+| `data-id` | every component; stable and unique | `data-id="checkout.pay"` |
+| `data-feature` | the elements that make up a feature | `data-feature="export-csv"` |
+| `data-mock` | made-up values | `data-mock="true"` |
+
+Declare features once, in `<script type="application/json" id="poc-features">`, as
+`[{ "id": "export-csv", "title": "Export to CSV", "source": "PROJ-123" }]`. Keep `data-id`s and
+feature ids stable when you change a screen: later handoffs report changes by id.
+
 ```
-poc-kit build         # inlines vendor/* into the markers -> prototype.html, then lints offline
+poc-kit build         # inlines vendor/* -> prototype.html, lints offline, then lints the design system
+```
+
+`build` **fails** when the source drifts from the design system: a class that isn't in the profile
+or `layout.css`, an untagged control or component, a tag naming a component, variant, state or part
+the profile doesn't have, an element that doesn't have its component's markup, a `style=""` that sets
+colour, type, spacing or borders, a hard-coded colour, a missing or duplicate id, or an undeclared
+or unused feature. Fix the markup. When an exception is genuinely right, add it to
+`build.config.json` with a reason — it shows up in every build and in the handoff:
+
+```json
+"allow": [{ "rule": "unknown-class", "target": "hero-banner", "reason": "marketing banner, not in the DS yet" }]
 ```
 
 ## 6. Mock the logic
@@ -125,10 +153,9 @@ opinion either, pick a sensible default and note it in `HANDOFF.md`.
 
 `references/consistency.md` is a checklist of decisions to **make once and keep consistent across
 screens** (primary-action placement, how state is shown, keyboard/focus behaviour, whether the
-requirement's provenance is surfaced). It lists *what to decide*, not *what to choose*. Before
-authoring a new badge/chip/pill/label recipe, check whether a similar one already exists in the
-build (same property shape — border-radius + padding + font-size clustered together is the usual
-tell) and reuse or extend it instead of adding a fourth variant.
+requirement's provenance is surfaced). It lists *what to decide*, not *what to choose*. Don't author
+a new badge/chip/pill/label recipe: look up the design system's own (`poc-kit ds lookup`) and use a
+variant of it. `build` rejects classes the design system doesn't have, so an invented recipe fails.
 
 ## 8. Verify by driving it
 

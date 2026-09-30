@@ -32,7 +32,10 @@ direction — presume none of them.**
    reviewing); optionally `poc-kit add-font …`. Look each component up with
    `poc-kit ds lookup <Component>` as you use it (`poc-kit ds list` for all) (`§4`).
 5. **Scaffold & build:** `poc-kit init .`, fill `prototype.src.html` with only the screens the
-   slice needs, then `poc-kit build` (`§5`).
+   slice needs, **tagged** (`data-screen`, `data-component` + `data-id`, `data-variant`/`data-state`,
+   `data-feature`; features declared in the `poc-features` block), then `poc-kit build`. `build`
+   fails on design-system drift — fix the markup; only add a reasoned `allow` entry when an
+   exception is genuinely right (`§5`).
 6. **Mock the logic** — deterministic, inspectable, visibly illustrative, never fake precision
    (`§6`).
 7. **Follow the design system's own guidance** for layout/nav/status/actions; use

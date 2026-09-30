@@ -25,7 +25,7 @@ const HELP = `poc-kit <command> [options]
   ds list | lookup <Component>     Look up the design system one component at a time.
   ds validate [file]               Check a profile, and that it matches vendor/ds.css.
   add-font <family | ./file>       Embed a font as a base64 @font-face.
-  build                            Inline vendor/* into the markers -> prototype.html, then lint offline.
+  build                            Inline vendor/* -> prototype.html; lint offline + design system.
   verify [file] [--flow flow.json] Static checks always; headless-browser drive when Chrome is present.
                                     --quiet suppresses passing lines; --diff shows only steps whose
                                     pass/fail changed since the last run (cached in .poc-kit/).

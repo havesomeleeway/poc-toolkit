@@ -4,45 +4,37 @@
 // Plus an optional a11y smoke pass when flow.a11y is true.
 
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { resolve, dirname, isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
-import net from 'node:net';
 import CDP from 'chrome-remote-interface';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function freePort(start = 9222) {
-  for (let p = start; p < start + 200; p++) {
-    const free = await new Promise((res) => {
-      const s = net.createServer();
-      s.once('error', () => res(false));
-      s.once('listening', () => s.close(() => res(true)));
-      s.listen(p, '127.0.0.1');
-    });
-    if (free) return p;
-  }
-  throw new Error('no free port for Chrome');
-}
-
 // Spawn a throwaway headless Chrome and connect to it over CDP. Shared by runFlow and
 // anything else (e.g. the `query` command) that needs a page without a whole flow.
 export async function launchChrome(chromePath) {
-  const port = await freePort();
-  const userDir = resolve(tmpdir(), `poc-kit-chrome-${process.pid}-${Date.now()}`);
+  const userDir = mkdtempSync(resolve(tmpdir(), 'poc-kit-chrome-'));
   // Containers / CI usually need --no-sandbox --disable-dev-shm-usage; pass them via
   // POC_KIT_CHROME_FLAGS rather than baking assumptions in.
   const extraFlags = (process.env.POC_KIT_CHROME_FLAGS || '').split(/\s+/).filter(Boolean);
+  // Port 0: Chrome binds a free port itself and writes it to DevToolsActivePort. Picking a port
+  // here and handing it over races with any other Chrome starting at the same moment.
   const proc = spawn(chromePath, [
     '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
-    '--hide-scrollbars', `--remote-debugging-port=${port}`, `--user-data-dir=${userDir}`,
+    '--hide-scrollbars', '--remote-debugging-port=0', `--user-data-dir=${userDir}`,
     ...extraFlags, 'about:blank',
   ], { stdio: 'ignore' });
 
   let client;
-  for (let i = 0; i < 60; i++) {
-    try { client = await CDP({ port }); break; } catch { await sleep(250); }
+  const portFile = resolve(userDir, 'DevToolsActivePort');
+  for (let i = 0; i < 60 && !client; i++) {
+    await sleep(250);
+    let port;
+    try { port = Number(readFileSync(portFile, 'utf8').split('\n')[0]); } catch { continue; }
+    if (!port) continue;
+    try { client = await CDP({ port }); } catch { /* not accepting connections yet */ }
   }
   if (!client) {
     proc.kill();

@@ -34,6 +34,9 @@ they're needed to avoid context rot; ship templates and flows, not just componen
 - The handoff names the design system and its components explicitly.
 - A shared mapping file links design-system components to a target stack's components. Both
   poc-kit and developers use the same file.
+- Handoffs are **incremental**. A prototype is one project that changes over time (features 1–10,
+  then 1–11, then 2–11). Each handoff is a numbered revision, and developers get the list of changes
+  since any earlier revision, not a fresh spec to reverse-engineer.
 
 ---
 
@@ -43,11 +46,12 @@ they're needed to avoid context rot; ship templates and flows, not just componen
 |---|------|------|------------|
 | 0 | Tests, lint, CI, hooks (**done**) | Medium | — |
 | 1 | Design-system profile + lookup (**done**) | Medium | 0 |
-| 2 | Component tagging + linter | Medium | 1 |
+| 2 | Component tagging + linter (**done**) | Medium | 1 |
 | 3 | `spec.json` + schema | Large | 2 |
 | 4 | Behaviours from `flow.json` | Small | 3 |
 | 5 | Mapping file | Medium | 1, 3 |
 | 6 | Handoff bundle | Medium | 3, 4, 5 |
+| 6b | Revisions and change list | Medium | 6 |
 | 7 | Developer instructions | Small | 6 |
 | 8 | Rendered style audit | Medium | 1 |
 | 9 | Screen templates | Medium | 2 |
@@ -155,8 +159,16 @@ The prototype records what each element is, using design-system names from the p
 Tag convention:
 - `data-screen="checkout"` on each screen
 - `data-component="Button"`, `data-variant="primary"`, `data-state="disabled"` on components
+  (`data-variant` and `data-state` take a space-separated list, e.g. `"primary lg"`)
+- `data-part="body"` on a component's named inner element
 - `data-id="checkout.pay"`, a stable node ID, unique across the prototype
+- `data-feature="export-csv"` on the elements that make up a feature (applies to the subtree).
+  Features are declared once in `<script type="application/json" id="poc-features">` with an `id`,
+  a `title` and optionally the `source` (ticket or requirement line).
 - `data-mock="true"` on mocked values
+
+Stable IDs and features are what make incremental handoffs (step 6b) possible: an element keeps
+its `data-id` across revisions, so a change list can say what was added, removed or changed.
 
 Tasks:
 1. Update `cli/templates/prototype.src.html` to use the tags.
@@ -167,8 +179,25 @@ Tasks:
    - an inline `style=` sets colour, font or spacing
    - a raw hex or rgb colour does not match a token
    - two elements share a `data-id`
-3. `--allow <rule>:<id>` lets a specific failure pass. Every allowed exception is written into the
-   handoff under `gaps`.
+   - a `data-feature` is not declared, or a declared feature is never used
+   - an element tagged with a component does not have that component's markup (wrong element,
+     missing class or attribute, or a class from a variant it doesn't declare)
+3. Exceptions live in `build.config.json` as `"allow": [{ "rule", "target", "reason" }]`. A reason is
+   required. Every allowed exception is printed by `build` and written into the handoff under
+   `gaps`.
+4. Limit: the linter reads the source HTML, so markup that scripts create at runtime is not checked
+   here. Step 3 walks the rendered page and reports untagged components it finds there.
+
+**Status: done.** `cli/src/lint-ds.mjs` (rules listed in `RULES`), run by `build` on the source.
+Also:
+- The `init` scaffold is tagged and passes; it declares an empty `poc-features` block.
+- `cli/test/fixtures/sample/`: a tagged two-screen dashboard with two features, used by the unit
+  and browser tests (and by step 6b later).
+- Inline `style=""` may still set layout (`display`, widths, `--pk-*` settings); only colour, type,
+  spacing, borders and token overrides are rejected.
+- Found and fixed while testing: `verify` picked Chrome's debugging port itself and could collide
+  with another Chrome starting at the same time, so two `verify` runs in parallel could drive each
+  other's page. Chrome now picks its own port.
 
 Done when: an invented class, an untagged button or a hard-coded colour fails `poc-kit build` with
 a clear message.
@@ -184,6 +213,7 @@ Tasks:
    - `nodes{}`: `id`, `component`, `componentDocs` (link from the profile), `variant`, `props`,
      `states` (each `designed` or `not-designed`), `children`, `data` (`real` / `mock` /
      `unknown`, with a reason for mock)
+   - `features[]`: `id`, `title`, `source`, and the screens and nodes that belong to it
    - `transitions[]`: `from`, `trigger` (node ID + event), `to`, `condition`
    - `data`: shapes and types of the mock data
    - `gaps`: unmapped components, assumptions, open questions, linter exceptions
@@ -275,6 +305,32 @@ handoff/
 
 Done when: one command produces a folder a developer could build from without opening the HTML.
 
+## Step 6b: Revisions and change list
+
+A prototype is one project that changes over time. Each handoff is a numbered revision, and every
+handoff says what changed since an earlier one.
+
+Tasks:
+1. `METHOD.md`: for incremental work, keep the same prototype project in git and change it. Don't
+   start fresh with `init`: that throws away the stable IDs the change list depends on.
+2. `poc-kit handoff` writes `handoffs/r<N>/` (a full bundle, as in step 6) and
+   `handoffs/r<N>/revision.json`: revision number, date, the revision it follows, the requirement
+   source. `handoffs/latest` points at the newest. Earlier revisions are kept.
+3. The change list, `changes.md` + `changes.json`, is written against the previous revision by
+   default, or any earlier one with `--since r<N>` (a developer may jump from r1 to r3). It lists:
+   - features added, removed, changed (and which screens and nodes that touched)
+   - screens and nodes added, removed, changed (component, variant, props, states)
+   - behaviours added and removed, so developers add or delete the matching tests
+   - changes to mock data shapes and tokens
+4. `poc-kit diff <revision | folder> <revision | folder>` prints the same comparison without
+   writing a handoff.
+5. Guard against ID churn: when a revision removes and adds many nodes of the same component, IDs
+   were probably renamed rather than the UI changed. `handoff` warns and names them instead of
+   producing a misleading change list.
+
+Done when: features 1–10 → 1–11 → 2–11 produce r2 "added feature 11" and r3 "removed feature 1"
+with the nodes and behaviours each touched, and `--since r1` from r3 shows both.
+
 ## Step 7: Developer instructions
 
 Write `cli/templates/IMPLEMENTING.md`, a short prompt for any coding agent:
@@ -285,6 +341,8 @@ Write `cli/templates/IMPLEMENTING.md`, a short prompt for any coding agent:
 - Use `tokens.json` for values.
 - Treat everything marked `mock` as needing real data.
 - Check your build against `behaviours.md`.
+- If `changes.md` exists, implement only the changes. A removed feature means deleting its code and
+  tests, not hiding it.
 
 ## Step 8: Rendered style audit
 

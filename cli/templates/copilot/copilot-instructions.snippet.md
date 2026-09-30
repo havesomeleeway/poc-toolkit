@@ -15,6 +15,8 @@ When asked for an interactive demo, POC, pitch prototype, or clickable mockup fr
 - Use the **`poc-kit`** CLI for the deterministic work:
   `npx poc-kit init` · `add-ds <npm|url|--none>` (or `--profile <shared profile>`) ·
   `ds lookup <Component>` · `add-font` · `build` · `verify` · `handoff`.
+- Tag what you build (`data-screen`, `data-component` + `data-id`, `data-feature`, …); `build`
+  fails on design-system drift.
 - Presume **no features**. Screens, interactions and any export path come from the requirement and
   the user's direction only.
 - **Confirm the slice + screen list** with the user before building. The **actor/persona is the

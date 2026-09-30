@@ -13,6 +13,15 @@
   (wrapper / flow / cluster / repel / switcher / sidebar / grid) instead of
   ad hoc inline flex/grid — see that file's header comments for each one.
 
+  Tag what you build, so it can be checked and handed off (build fails otherwise):
+    data-screen="<id>"            on each .screen
+    data-component="<Component>"  on each design-system component — poc-kit ds lookup <Component>
+      data-variant / data-state   its variants and states (space-separated)
+      data-part="<part>"          a named part inside it
+    data-id="<screen.thing>"      a stable, unique id — keep it when you change the screen
+    data-feature="<feature-id>"   on the elements that make up a feature (declared below)
+    data-mock="true"              on values that are made up
+
   Build:  poc-kit build   (inlines vendor/layout.css, vendor/font.css and vendor/ds.css into the markers)
 -->
 <html lang="en">
@@ -39,18 +48,23 @@
 <main id="app" class="pk-wrapper">
   <!-- One <section class="screen" id="screen-1"> per screen the requirement needs.
        All but the first should start with the `hidden` attribute. -->
-  <section class="screen" id="screen-1">
+  <section class="screen" id="screen-1" data-screen="screen-1">
     <h1>Screen 1</h1>
-    <button type="button" data-nav="screen-2">Next</button>
+    <button type="button" data-component="Button" data-id="screen-1.next" data-nav="screen-2">Next</button>
   </section>
 
-  <section class="screen" id="screen-2" hidden>
+  <section class="screen" id="screen-2" data-screen="screen-2" hidden>
     <h1>Screen 2</h1>
-    <button type="button" data-nav="screen-1">Back</button>
+    <button type="button" data-component="Button" data-id="screen-2.back" data-nav="screen-1">Back</button>
   </section>
 </main>
 
 <footer data-slot="footer"></footer>
+
+<!-- The features this prototype shows, one entry each: {"id": "export-csv", "title": "Export to CSV",
+     "source": "PROJ-123"}. Mark their elements with data-feature="<id>". Keep ids stable across
+     revisions: handoffs report features added, removed and changed by id. -->
+<script type="application/json" id="poc-features">[]</script>
 
 <script>
 (function () {
