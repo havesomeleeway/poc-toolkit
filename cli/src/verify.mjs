@@ -7,7 +7,7 @@ import { readFileSync, existsSync, writeFileSync, mkdtempSync, mkdirSync } from 
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import process from 'node:process';
-import { parseArgs, readConfig, setQuiet, head, ok, warn, fail, info } from './util.mjs';
+import { parseArgs, rel, readConfig, setQuiet, head, ok, warn, fail, info } from './util.mjs';
 import { lintOffline, printReport } from './lint-offline.mjs';
 import { findChrome } from './chrome.mjs';
 
@@ -17,8 +17,8 @@ export async function run(argv) {
     console.log(
       'poc-kit verify [file] [--flow flow.json] [--quiet] [--diff]\n' +
       '  Static offline + JS-syntax checks; headless-browser flow when Chrome is available.\n' +
-      '  --quiet  suppress passing ("ok") lines — headers, warnings, failures and the tally still print.\n' +
-      '           auto-enabled when $CI is set; pass --quiet=false to force verbose in CI.\n' +
+      '  --quiet    only failures, warnings and the tally. The default without a terminal (agents, CI).\n' +
+      '  --verbose  every passing step too.\n' +
       '  --diff   only show steps whose pass/fail changed since the last run\n' +
       '           (cached in .poc-kit/last-run.json), plus a count of unchanged steps.',
     );
@@ -26,7 +26,10 @@ export async function run(argv) {
   }
 
   const ci = process.env.CI && process.env.CI !== 'false' && process.env.CI !== '0';
-  const quiet = args.quiet !== undefined ? args.quiet !== 'false' && args.quiet !== false : Boolean(ci);
+  // Quiet unless a person is watching: agents and CI run without a terminal.
+  const quiet = args.verbose ? false
+    : args.quiet !== undefined ? args.quiet !== 'false' && args.quiet !== false
+      : Boolean(ci) || !process.stdout.isTTY;
   setQuiet(quiet);
   const diffMode = Boolean(args.diff);
   const cachePath = resolve(process.cwd(), '.poc-kit', 'last-run.json');
@@ -106,7 +109,7 @@ export async function run(argv) {
 
     if (artifacts.length) {
       head('artifacts');
-      for (const a of artifacts) info(rel(a));
+      for (const a of artifacts) ok(rel(a));
     }
     return passOk;
   }
@@ -135,7 +138,6 @@ export async function run(argv) {
   process.exit(staticOk && driveOk ? 0 : 1);
 }
 
-function rel(p) { return p.replace(process.cwd() + '/', ''); }
 
 function checkScripts(html) {
   const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
@@ -149,7 +151,7 @@ function checkScripts(html) {
     return true;
   } catch (e) {
     fail('inline script has a syntax error:');
-    console.error(String(e.stderr || e.message).split('\n').slice(0, 6).map((l) => '          ' + l).join('\n'));
+    console.log(String(e.stderr || e.message).split('\n').slice(0, 6).map((l) => '          ' + l).join('\n'));
     return false;
   }
 }

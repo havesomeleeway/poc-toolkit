@@ -1,23 +1,7 @@
 # Writing flow.json and reading verify output
 
-Expanded from `METHOD.md` §8. `poc-kit verify` is how you know the POC actually works — not a
-screenshot.
-
-## What `verify` does
-
-| Layer | When | Gate? |
-|---|---|---|
-| offline-safety lint | always | **yes** — output must be self-contained |
-| inline `<script>` syntax (`node --check`) | always | **yes** |
-| `flow.json` step assertions | Chrome present | **yes** |
-| zero console errors during the flow | Chrome present | **yes** |
-| a11y smoke (labels, focus-visible, aria-hidden svg, title, body bg) | Chrome present | advisory (warn only) |
-| `DEGRADED` notice + static-only pass | Chrome absent | n/a |
-
-## Authoring the flow
-
-Write it from the screens you actually built. Drive the *real* path a presenter would take, and
-assert the things that would embarrass you if broken.
+For `METHOD.md` §8. Drive the real path a presenter would take and assert what would embarrass you
+if it broke.
 
 ```json
 {
@@ -26,7 +10,7 @@ assert the things that would embarrass you if broken.
   "a11y": true,
   "steps": [
     { "click": "[data-nav='screen-2']" },
-    { "expectVisible": "#screen-2" },
+    { "expectVisible": "[data-screen=screen-2]" },
     { "setValue": "#quantity", "to": "5" },
     { "expectText": "#total", "contains": "$" },
     { "expectNoConsoleErrors": true },
@@ -35,29 +19,17 @@ assert the things that would embarrass you if broken.
 }
 ```
 
-Step types: `click`, `setValue` (+`to`), `wait` (ms), `eval` (+optional `equals`),
-`expectVisible`, `expectHidden`, `expectText` (+`contains`), `expectNoConsoleErrors`,
-`screenshot` (name), `pdf` (path — a plain capture, only if this build has an export path).
-Full schema: `cli/schema/flow.schema.json`.
+Step types: `click`, `setValue` (+`to`), `wait` (ms), `eval` (+`equals`), `expectVisible`,
+`expectHidden`, `expectText` (+`contains`), `expectNoConsoleErrors`, `screenshot` (name), `pdf`
+(path; only if the build has an export path). Schema: `cli/schema/flow.schema.json`.
+
+Without a terminal, `verify` prints only failures, warnings and the tally; `--verbose` shows every
+step.
 
 ## Reading failures
 
-- **`FAIL step N: … — no element <sel>`** — selector wrong, or the screen didn't advance. Check
-  the prior `click`/`showScreen`.
-- **`FAIL … expectText — text was "…"`** — the render ran but produced the wrong value; look at
-  the mock model, not the DOM plumbing.
-- **`console errors: N`** with `exception: …` — a real JS error; the flow may still have
-  "passed" visually. This always fails the run. Fix it.
-- **offline-safety `FAIL`** — something external slipped in (a font `@import`, a CDN `<script>`,
-  a stray URL). Inline it or remove it.
-- **`a11y: … (advisory)`** — not a gate, but worth a look; usually a one-line fix (add a label,
-  set a body background, add `aria-hidden` to a decorative icon).
-
-Re-run until `PASS`, then open the screenshots in `out/`.
-
-## Notes
-
-- `poc-kit verify` finds Chrome via `CHROME_PATH`, then platform defaults, then `PATH`.
-- `POC_KIT_NO_CHROME=1` forces the `DEGRADED` (static-only) path — useful in CI or to check the
-  static gates in isolation.
-- Set `POC_KIT_DEBUG=1` for full stack traces on a CLI error.
+- **`no element <sel>`** — wrong selector, or the screen didn't change; check the step before.
+- **`text was "…"`** — the mock model produced the wrong value; look there, not at the DOM.
+- **`console errors: N`** — a real JS error. Always fails the run, even if the flow looked fine.
+- **offline-safety `FAIL`** — something external slipped in (`@import`, CDN `<script>`, a URL).
+- **`a11y: … (advisory)`** — not a gate; usually a one-line fix.

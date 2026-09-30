@@ -10,49 +10,31 @@ description: >-
 
 # interactive-poc
 
-Follow **`METHOD.md`** — the canonical method. Find it next to this file, three levels up
-(`../../../METHOD.md`) in the `poc-toolkit` repo, or at
-<https://github.com/havesomeleeway/poc-toolkit/blob/main/METHOD.md>. This skill is a thin driver;
-the deterministic work is the **`poc-kit`** CLI (`npm install -g poc-kit`, then `poc-kit …`).
+Follow **`METHOD.md`** (next to this file, three levels up, or
+<https://github.com/havesomeleeway/poc-toolkit/blob/main/METHOD.md>). The CLI is `poc-kit`
+(`npm install -g poc-kit`). Screens, interactions, mocked logic and any export path come only from
+the requirement and the user — presume none.
 
-The toolkit supplies process, scaffolding and checks only. **The prototype's screens,
-interactions, mocked logic and any export path come entirely from the requirement and the user's
-direction — presume none of them.**
+## Workflow (details in METHOD §1–9)
 
-## Workflow
-
-1. **Ingest & pick one slice.** Read the requirement source. Choose one story/journey by the
-   rubric in `METHOD.md` §1 (legible to a non-expert, interactive, on-message, buildable with no
-   integrations, fits the scope). **Propose the slice + screen list and confirm before building.**
-2. **Decide the actor.** If multiple roles are named, work out who operates this screen; give a
-   reasoned soft conclusion; **STOP and let the user decide** (`METHOD.md` §2).
-3. **Research patterns** for this flow — structure, not styling; keep references (`§3`).
-4. **Acquire the design system:** `poc-kit add-ds --profile <shared profile>` if one exists, else
-   `poc-kit add-ds <npm | url | ./x.css | --none>` (a draft profile — tell the user it needs
-   reviewing); optionally `poc-kit add-font …`. Look each component up with
-   `poc-kit ds lookup <Component>` as you use it (`poc-kit ds list` for all) (`§4`).
-5. **Scaffold & build:** `poc-kit init .`, fill `prototype.src.html` with only the screens the
-   slice needs, **tagged** (`data-screen`, `data-component` + `data-id`, `data-variant`/`data-state`,
-   `data-feature`; features declared in the `poc-features` block), then `poc-kit build`. `build`
-   fails on design-system drift — fix the markup; only add a reasoned `allow` entry when an
-   exception is genuinely right (`§5`).
-6. **Mock the logic** — deterministic, inspectable, visibly illustrative, never fake precision
-   (`§6`).
-7. **Follow the design system's own guidance** for layout/nav/status/actions; use
-   `references/consistency.md` as a *what-to-decide* checklist, not a set of values (`§7`).
-8. **Verify by driving it:** author `flow.json`, run `poc-kit verify`. Zero console errors is a
-   gate. Fix, re-run, read the screenshots (`§8`).
-9. **Hand off:** `poc-kit handoff`, then fill in what the audience needs (`§9`).
+1. **Pick one slice** and its screen list (§1).
+2. **Decide the actor** — give reasons, the user chooses (§2).
+3. **Research patterns** — structure, not styling (§3).
+4. **Acquire the design system:** `poc-kit add-ds --profile <shared>` or `poc-kit add-ds <npm | url | ./x.css | --none>`; optional `poc-kit add-font`; look components up with `poc-kit ds lookup` / `poc-kit ds search` (§4).
+5. **Scaffold, build, tag:** `poc-kit init .`, tag as in §5, `poc-kit build` until it passes (§5).
+6. **Mock the logic** (§6).
+7. **Let the design system lead** (§7).
+8. **Verify by driving it:** `flow.json`, `poc-kit verify` (§8).
+9. **Hand off:** `poc-kit handoff` (§9).
 
 ## STOP points
 
 - After step 1 — confirm the slice and screen list.
-- After step 2 — the actor/persona is the user's call.
-- Do not add any feature (export, extra screens, integrations) the requirement does not ask for.
+- After step 2 — the actor is the user's call.
+- A draft design-system profile — tell the user it needs a one-time review.
+- Never add a feature (export, extra screens, integrations) the requirement doesn't ask for.
 
-## References
+## References (read when the step needs them)
 
-- `references/use-case-selection.md` — the slice rubric, expanded.
-- `references/consistency.md` — decisions to make once and keep consistent (not mandated values).
-- `references/mock-logic.md` — how to fake logic without faking precision.
-- `references/verification.md` — writing `flow.json`; reading failures.
+- `references/use-case-selection.md` — step 1 · `references/consistency.md` — step 7 ·
+  `references/mock-logic.md` — step 6 · `references/verification.md` — step 8

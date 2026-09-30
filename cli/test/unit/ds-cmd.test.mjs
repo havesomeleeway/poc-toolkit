@@ -1,17 +1,10 @@
 // add-ds profiles and the `ds` command, run as real processes. No network.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { PKG_ROOT } from '../../src/util.mjs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { pk, tmp } from '../helpers.mjs';
 
-const BIN = resolve(PKG_ROOT, 'bin', 'poc-kit.mjs');
-const pk = (cwd, args) => {
-  const r = spawnSync(process.execPath, [BIN, ...args], { cwd, encoding: 'utf8', env: { ...process.env, CI: '' } });
-  return { code: r.status, out: r.stdout + r.stderr, stdout: r.stdout };
-};
 const json = (p) => JSON.parse(readFileSync(p, 'utf8'));
 
 const CSS = `
@@ -21,7 +14,7 @@ const CSS = `
 `;
 
 function project() {
-  const dir = mkdtempSync(join(tmpdir(), 'pk-ds-'));
+  const dir = tmp();
   assert.equal(pk(dir, ['init', '.']).code, 0);
   return dir;
 }
@@ -40,12 +33,15 @@ test('ds list and ds lookup', () => {
   pk(dir, ['add-ds', '--none']);
   const list = pk(dir, ['ds', 'list']);
   assert.equal(list.code, 0);
-  assert.match(list.out, /^\s+Button\s+button\s+· primary, secondary$/m);
+  assert.match(list.out, /^ {2}Button, Card, Label, Link, Select, Table, TextArea, TextField$/m, 'names only by default');
+  assert.match(pk(dir, ['ds', 'list', '--detail']).out, /^\s+Button\s+button\s+· primary, secondary$/m);
 
   const look = pk(dir, ['ds', 'lookup', 'button']);
   assert.equal(look.code, 0);
   assert.match(look.out, /secondary \[data-variant="secondary"\]/);
-  assert.match(look.out, /<button data-variant="secondary" type="button">…<\/button>/);
+  assert.match(look.out, /example {3}<button type="button">…<\/button>$/m, 'one example line');
+  assert.doesNotMatch(look.out, /tokens/);
+  assert.match(pk(dir, ['ds', 'lookup', 'button', '--tokens']).out, /tokens {4}--nk-accent/);
 });
 
 test('ds lookup --json is machine-readable and names the design system', () => {
@@ -56,6 +52,7 @@ test('ds lookup --json is machine-readable and names the design system', () => {
   assert.equal(out.designSystem.reviewed, true);
   assert.deepEqual(out.component.markup, { classes: ['card'] });
   assert.equal(out.component.snippet, '<div class="card">…</div>');
+  assert.equal(out.component.tokens, undefined, 'tokens only with --tokens');
 });
 
 test('ds lookup of an unknown component exits 1 and suggests names', () => {
@@ -66,8 +63,26 @@ test('ds lookup of an unknown component exits 1 and suggests names', () => {
   assert.match(r.out, /did you mean: Button/);
 });
 
+test('ds search finds components, classes (with their owner) and tokens, capped', () => {
+  const dir = project();
+  pk(dir, ['add-ds', '--none']);
+  const r = pk(dir, ['ds', 'search', 'card']);
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /components \(1\): Card/);
+  assert.match(r.out, /classes \(1\): \.card \[Card\]/);
+  assert.match(pk(dir, ['ds', 'search', 'accent']).out, /tokens \(2\): --nk-accent, --nk-accent-fg/);
+  assert.equal(pk(dir, ['ds', 'search', 'zzz']).code, 1);
+});
+
+test('ds search reads classes from the stylesheet when a draft allows "all"', () => {
+  const dir = project();
+  writeFileSync(join(dir, 'brand.css'), CSS + '.u-1 { margin: 0 } .u-2 { margin: 0 }');
+  pk(dir, ['add-ds', './brand.css']);
+  assert.match(pk(dir, ['ds', 'search', 'u-']).out, /classes \(2\): \.u-1, \.u-2/);
+});
+
 test('ds without a profile explains what to run', () => {
-  const r = pk(mkdtempSync(join(tmpdir(), 'pk-ds-')), ['ds', 'list']);
+  const r = pk(tmp(), ['ds', 'list']);
   assert.equal(r.code, 1);
   assert.match(r.out, /run "poc-kit add-ds" first/);
 });
@@ -83,13 +98,15 @@ test('add-ds ./local.css drafts a profile, and build warns that it is a draft', 
   assert.equal(p.stylesheet, '../brand.css');
   assert.match(p.generatedBy, /^poc-kit add-ds \d/);
   assert.deepEqual(p.components.map((c) => c.name), ['Btn']);
-  assert.match(r.out, /is a draft/);
+  assert.match(r.out, /draft profile/);
+  assert.equal(p.utilities, 'all');
+  assert.equal(p.tokens, 'all');
 
   // The scaffold's placeholder buttons say data-component="Button"; this design system calls it Btn.
   const b = pk(dir, ['build']);
   assert.match(b.out, /DRAFT profile/);
   assert.equal(b.code, 1);
-  assert.match(b.out, /data-component="Button" is not in brand/);
+  assert.match(b.out, /"Button" is not in brand/);
 });
 
 test('add-ds --profile with no stylesheet argument fetches the stylesheet the profile names', () => {

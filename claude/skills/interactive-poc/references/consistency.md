@@ -7,14 +7,11 @@ list of correct answers.** The chosen design system's own guidance decides each 
 design system is silent and the use case has no opinion, pick something sensible and record it in
 `HANDOFF.md`.
 
-## Before adding a new visual pattern: does this already exist?
+## Before adding a new visual pattern
 
-Before authoring a new badge, chip, pill, tag, or label recipe — or any small repeated visual
-unit — grep the existing CSS for classes doing a similar job first. A shared property shape
-(`border-radius` + `padding` + `font-size` clustered in one rule) is almost always that same
-family under a different name. Reuse or extend the existing one rather than adding a fourth
-variant; a class that looks close enough to reuse usually is. Do this for every screen, not just
-the first one — drift creeps in one screen at a time, each looking like a small, local decision.
+Don't author a badge, chip, pill or label recipe: find the design system's own with
+`poc-kit ds search <text>` / `poc-kit ds lookup <Component>` and use a variant of it. `build`
+rejects classes the design system doesn't have.
 
 ## Decide once, then keep consistent
 

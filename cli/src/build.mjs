@@ -4,7 +4,7 @@
 
 import { resolve, dirname } from 'node:path';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { parseArgs, readConfig, head, ok, warn, fail, info } from './util.mjs';
+import { parseArgs, readConfig, head, ok, warn, fail } from './util.mjs';
 import { lintOffline, printReport } from './lint-offline.mjs';
 import { validateProfile } from './ds-profile.mjs';
 import { lintDs, printLintDs, validateAllow } from './lint-ds.mjs';
@@ -13,7 +13,7 @@ import { classSet } from './css-scan.mjs';
 export async function run(argv) {
   const args = parseArgs(argv);
   if (args.help) {
-    console.log('poc-kit build [--config build.config.json]\n  Inline vendor/* into the markers, lint for offline-safety, then lint the source\n  against the design-system profile. Exceptions: "allow" in build.config.json.');
+    console.log('poc-kit build [--config build.config.json] [--all]\n  Inline vendor/* into the markers, lint for offline-safety, then lint the source\n  against the design-system profile (--all: every problem, not 10 per rule).\n  Exceptions: "allow" in build.config.json.');
     return;
   }
   const cfg = args.config
@@ -72,7 +72,7 @@ export async function run(argv) {
     process.exit(1);
   }
   if (profile.reviewed) ok(`${profile.name}${profile.version ? ` ${profile.version}` : ''}: ${profile.components.length} components`);
-  else warn(`DRAFT profile (${profile.name}): guessed from the CSS, not reviewed — lookups may be wrong. Review it, set "reviewed": true, and reuse it with add-ds --profile.`);
+  else warn(`DRAFT profile (${profile.name}): not reviewed, so lookups and checks may be wrong`);
 
   head(`design-system lint  ${cfg.src || 'prototype.src.html'}`);
   const allowProblems = validateAllow(cfg.allow);
@@ -82,8 +82,10 @@ export async function run(argv) {
   }
   const layoutPath = resolve(dirname(srcPath), 'vendor/layout.css');
   const layoutClasses = existsSync(layoutPath) ? [...classSet(readFileSync(layoutPath, 'utf8'))] : [];
-  const lint = lintDs(source, { profile, layoutClasses, allow: cfg.allow || [] });
-  printLintDs(lint, { ok, info, fail, warn });
+  const dsPath = resolve(dirname(srcPath), 'vendor/ds.css');
+  const css = existsSync(dsPath) ? readFileSync(dsPath, 'utf8') : undefined;
+  const lint = lintDs(source, { profile, css, layoutClasses, allow: cfg.allow || [] });
+  printLintDs(lint, { all: Boolean(args.all) });
   if (!lint.ok) {
     fail(`${lint.violations.length} design-system problem(s) — fix them, or add a reasoned exception to "allow" in build.config.json`);
     process.exit(1);

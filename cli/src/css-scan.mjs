@@ -117,16 +117,3 @@ export function customProps(css) {
   for (const m of stripComments(css).matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)) set.add(m[1]);
   return set;
 }
-
-export function varsUsed(body) {
-  return [...new Set([...body.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map((m) => m[1]))];
-}
-
-// First declared value of each custom property: { '--x': '#fff' }.
-export function customPropValues(css) {
-  const out = {};
-  for (const m of stripComments(css).matchAll(/(--[a-zA-Z0-9_-]+)\s*:\s*([^;{}]+)/g)) {
-    if (!(m[1] in out)) out[m[1]] = m[2].trim();
-  }
-  return out;
-}

@@ -15,24 +15,25 @@ import { scanHtml, ancestors } from './html-scan.mjs';
 import { rules as cssRules } from './css-scan.mjs';
 import { profileClasses, profileTokens, suggest, describeMarkup } from './ds-profile.mjs';
 
+// rule -> [what it means, how to fix]. Printed once per rule, not on every line.
 export const RULES = {
-  'unknown-class': 'a class that is not in the design-system profile or layout.css',
-  'unknown-component': 'data-component names a component the profile does not have',
-  'unknown-variant': 'data-variant names a variant the component does not have',
-  'unknown-state': 'data-state names a state the component does not have',
-  'unknown-part': 'data-part names a part the component does not have',
-  'part-outside-component': 'data-part is not inside an element with data-component',
-  'markup-mismatch': "a tagged element does not have its component's markup",
-  'untagged-widget': 'a control or design-system component without data-component',
-  'missing-id': 'a component without data-id',
-  'bad-id': 'a data-id, data-screen or feature id that is not a lowercase slug',
-  'duplicate-id': 'the same data-id or data-screen used twice',
-  'screen-untagged': 'a .screen without data-screen',
-  'inline-style': 'a style="" attribute that sets colour, type, spacing or borders',
-  'raw-color': 'a hard-coded colour instead of a design-system token',
-  'unknown-feature': 'data-feature names a feature that is not declared',
-  'unused-feature': 'a declared feature that no element uses',
-  'bad-features-block': 'the poc-features block is not a list of { id, title, source? }',
+  'unknown-class': ['classes not in the design system or layout.css', 'use the design system\'s classes (poc-kit ds search <text>) or .pk-* layout'],
+  'unknown-component': ['data-component names a component the profile does not have', 'poc-kit ds list'],
+  'unknown-variant': ['data-variant names a variant the component does not have', 'poc-kit ds lookup <Component>'],
+  'unknown-state': ['data-state names a state the component does not have', 'poc-kit ds lookup <Component>'],
+  'unknown-part': ['data-part names a part the component does not have', 'poc-kit ds lookup <Component>'],
+  'part-outside-component': ['data-part is not inside an element with data-component', 'move it inside its component'],
+  'markup-mismatch': ["a tagged element does not have its component's markup", 'poc-kit ds lookup <Component> shows the markup'],
+  'untagged-widget': ['a control or component without data-component', 'add data-component + data-id (poc-kit ds lookup <Component>)'],
+  'missing-id': ['a component without data-id', 'add a stable data-id like "screen.action"'],
+  'bad-id': ['an id that is not a lowercase slug', 'use lowercase letters, digits and . _ -'],
+  'duplicate-id': ['the same data-id or data-screen used twice', 'make each id unique'],
+  'screen-untagged': ['a .screen without data-screen', 'add data-screen="<id>"'],
+  'inline-style': ['style="" hard-codes a visual value or overrides a design-system token', 'use var(--token), a design-system class, or .pk-* layout'],
+  'raw-color': ['a hard-coded colour', 'use a design-system token, var(--…)'],
+  'unknown-feature': ['data-feature names an undeclared feature', 'declare it in <script type="application/json" id="poc-features">'],
+  'unused-feature': ['a declared feature no element uses', 'mark its elements with data-feature, or remove it'],
+  'bad-features-block': ['the poc-features block is not a list of { id, title, source? }', 'fix the JSON'],
 };
 
 const SCAFFOLD_CLASSES = ['screen'];
@@ -43,14 +44,15 @@ const VISUAL_PROP = /^(color|background(-color|-image)?|font(-[a-z]+)?|line-heig
 const COLOR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(|(?:^|[\s,(])(?:red|blue|green|black|white|gray|grey|orange|yellow|purple|pink|navy|teal)(?=$|[\s,);])/i;
 const BUILD_MARKER = /^\s*\/\*__[A-Z_]+__\*\/\s*$/;
 
-export function lintDs(html, { profile, layoutClasses = [], allow = [] } = {}) {
+// `css` is the design system's stylesheet, needed when the profile allows "all" its classes or tokens.
+export function lintDs(html, { profile, css, layoutClasses = [], allow = [] } = {}) {
   const { elements, styles, scripts } = scanHtml(html);
   const found = [];
-  const add = (rule, line, target, message) => found.push({ rule, line, target, message });
+  const add = (rule, line, target, message, count = 1) => found.push({ rule, line, target, message, count });
 
   const components = new Map(profile.components.map((c) => [c.name, c]));
-  const known = new Set([...profileClasses(profile), ...layoutClasses, ...SCAFFOLD_CLASSES]);
-  const tokens = new Set(profileTokens(profile));
+  const known = new Set([...profileClasses(profile, css), ...layoutClasses, ...SCAFFOLD_CLASSES]);
+  const tokens = new Set(profileTokens(profile, css));
 
   // --- features --------------------------------------------------------------------------------
   const declared = new Map();
@@ -68,7 +70,7 @@ export function lintDs(html, { profile, layoutClasses = [], allow = [] } = {}) {
         add('bad-features-block', block.line, 'poc-features', `each feature needs "id" and "title" (and optionally "source"): ${JSON.stringify(f)}`);
         continue;
       }
-      if (!ID.test(f.id)) add('bad-id', block.line, f.id, `feature id "${f.id}" must be a lowercase slug, e.g. "export-csv"`);
+      if (!ID.test(f.id)) add('bad-id', block.line, f.id, `feature id "${f.id}"`);
       if (declared.has(f.id)) add('bad-features-block', block.line, f.id, `feature "${f.id}" is declared twice`);
       declared.set(f.id, f);
     }
@@ -91,23 +93,23 @@ export function lintDs(html, { profile, layoutClasses = [], allow = [] } = {}) {
     }
 
     if (el.classes.includes('screen') && !('data-screen' in a)) {
-      add('screen-untagged', el.line, a.id || '.screen', `.screen${a.id ? `#${a.id}` : ''} needs data-screen="<id>"`);
+      add('screen-untagged', el.line, a.id || '.screen', `.screen${a.id ? `#${a.id}` : ''}`);
     }
     if ('data-screen' in a) {
       const s = a['data-screen'];
-      if (!ID.test(s)) add('bad-id', el.line, s, `data-screen="${s}" must be a lowercase slug`);
+      if (!ID.test(s)) add('bad-id', el.line, s, `data-screen="${s}"`);
       if (screens.has(s)) add('duplicate-id', el.line, s, `data-screen="${s}" is also used on line ${screens.get(s)}`);
       else screens.set(s, el.line);
     }
     if ('data-id' in a) {
       const id = a['data-id'];
-      if (!ID.test(id)) add('bad-id', el.line, id, `data-id="${id}" must be a lowercase slug, e.g. "checkout.pay"`);
+      if (!ID.test(id)) add('bad-id', el.line, id, `data-id="${id}"`);
       if (ids.has(id)) add('duplicate-id', el.line, id, `data-id="${id}" is also used on line ${ids.get(id)}`);
       else ids.set(id, el.line);
     }
     for (const f of words(a['data-feature'])) {
       usedFeatures.add(f);
-      if (!declared.has(f)) add('unknown-feature', el.line, f, `data-feature="${f}" is not declared in <script type="application/json" id="poc-features">`);
+      if (!declared.has(f)) add('unknown-feature', el.line, f, `data-feature="${f}"`);
     }
 
     if ('style' in a) checkInlineStyle(a.style, el.line, label, add, tokens);
@@ -118,19 +120,16 @@ export function lintDs(html, { profile, layoutClasses = [], allow = [] } = {}) {
       const like = profile.components.find((c) => looksLike(el, c.markup));
       const native = NATIVE_WIDGETS.has(el.tag) || el.tag === 'input' || a.role === 'button';
       if (like) {
-        add('untagged-widget', el.line, like.name, `<${el.tag}> looks like ${like.name} but has no data-component — tag it (poc-kit ds lookup ${like.name})`);
+        add('untagged-widget', el.line, like.name, `<${el.tag}> → ${like.name}`);
       } else if (native) {
-        add('untagged-widget', el.line, `<${el.tag}>`, `<${el.tag}> is a control with no data-component, and ${profile.name} has no component for it — see poc-kit ds list`);
+        add('untagged-widget', el.line, `<${el.tag}>`, `<${el.tag}> (no ${profile.name} component matches)`);
       }
     }
   });
 
-  for (const [c, u] of unknownClasses) {
-    const hint = c.startsWith('pk-') ? 'layout.css has no such class' : `not in ${profile.name} — poc-kit ds list, or ds lookup <Component>`;
-    add('unknown-class', u.line, c, `.${c} (${u.count}×): ${hint}`);
-  }
+  for (const [c, u] of unknownClasses) add('unknown-class', u.line, c, `.${c} ${u.count}×`, u.count);
   for (const [id, f] of declared) {
-    if (!usedFeatures.has(id)) add('unused-feature', block.line, id, `feature "${id}" (${f.title}) is declared but no element has data-feature="${id}"`);
+    if (!usedFeatures.has(id)) add('unused-feature', block.line, id, `"${id}" (${f.title})`);
   }
 
   // --- author CSS: <style> blocks other than the build markers ----------------------------------
@@ -144,7 +143,7 @@ export function lintDs(html, { profile, layoutClasses = [], allow = [] } = {}) {
         if (COLOR.test(value)) {
           const at = s.text.indexOf(decl.trim());
           const line = s.line + (at === -1 ? 0 : s.text.slice(0, at).split('\n').length - 1);
-          add('raw-color', line, `${r.selectors.join(', ')} { ${prop} }`, `${r.selectors.join(', ')} { ${prop}: ${value} } — use a design-system token, e.g. var(--…)`);
+          add('raw-color', line, `${r.selectors.join(', ')} { ${prop} }`, `${r.selectors.join(', ')} { ${prop}: ${value} }`);
         }
       }
     }
@@ -177,17 +176,17 @@ function checkComponent(el, components, profile, add) {
   const comp = components.get(name);
   if (!comp) {
     const near = suggest(profile, name);
-    add('unknown-component', el.line, name, `data-component="${name}" is not in ${profile.name}${near.length ? ` — did you mean ${near.join(', ')}?` : ' — see poc-kit ds list'}`);
+    add('unknown-component', el.line, name, `"${name}" is not in ${profile.name}${near.length ? ` (did you mean ${near.join(', ')}?)` : ''}`);
     return;
   }
-  if (!('data-id' in a)) add('missing-id', el.line, name, `${name} on line ${el.line} needs a data-id (a stable id like "screen.action")`);
+  if (!('data-id' in a)) add('missing-id', el.line, name, name);
 
   const variants = words(a['data-variant']), states = words(a['data-state']);
   for (const v of variants) if (!comp.variants || !(v in comp.variants)) {
-    add('unknown-variant', el.line, `${name}.${v}`, `${name} has no variant "${v}"${comp.variants ? ` — it has: ${Object.keys(comp.variants).join(', ')}` : ''}`);
+    add('unknown-variant', el.line, `${name}.${v}`, `${name}.${v}${comp.variants ? ` (has: ${Object.keys(comp.variants).join(', ')})` : ''}`);
   }
   for (const s of states) if (!comp.states || !(s in comp.states)) {
-    add('unknown-state', el.line, `${name}.${s}`, `${name} has no state "${s}"${comp.states ? ` — it has: ${Object.keys(comp.states).join(', ')}` : ''}`);
+    add('unknown-state', el.line, `${name}.${s}`, `${name}.${s}${comp.states ? ` (has: ${Object.keys(comp.states).join(', ')})` : ''}`);
   }
 
   const layers = [comp.markup, ...variants.map((v) => comp.variants?.[v]), ...states.map((s) => comp.states?.[s])].filter(Boolean);
@@ -204,7 +203,7 @@ function checkComponent(el, components, profile, add) {
       }
     }
   }
-  if (problems.length) add('markup-mismatch', el.line, a['data-id'] || name, `${label}: ${problems.join('; ')} — expected ${describeMarkup(expected)}`);
+  if (problems.length) add('markup-mismatch', el.line, a['data-id'] || name, `${label}: ${problems.join('; ')} (expected ${describeMarkup(expected)})`);
 }
 
 function checkPart(el, idx, elements, components, add) {
@@ -212,18 +211,18 @@ function checkPart(el, idx, elements, components, add) {
   let owner = null;
   for (const anc of ancestors(elements, idx)) if ('data-component' in anc.attrs) { owner = anc; break; }
   if (!owner) {
-    add('part-outside-component', el.line, part, `data-part="${part}" must be inside an element with data-component`);
+    add('part-outside-component', el.line, part, `data-part="${part}"`);
     return;
   }
   const comp = components.get(owner.attrs['data-component']);
   if (!comp) return; // already reported as unknown-component
   const m = comp.parts && comp.parts[part];
   if (!m) {
-    add('unknown-part', el.line, `${comp.name}.${part}`, `${comp.name} has no part "${part}"${comp.parts ? ` — it has: ${Object.keys(comp.parts).join(', ')}` : ''}`);
+    add('unknown-part', el.line, `${comp.name}.${part}`, `${comp.name}.${part}${comp.parts ? ` (has: ${Object.keys(comp.parts).join(', ')})` : ''}`);
     return;
   }
   const problems = missingMarkup(el, merge([m]));
-  if (problems.length) add('markup-mismatch', el.line, `${comp.name}.${part}`, `${comp.name} part "${part}": ${problems.join('; ')} — expected ${describeMarkup(m)}`);
+  if (problems.length) add('markup-mismatch', el.line, `${comp.name}.${part}`, `${comp.name}.${part}: ${problems.join('; ')} (expected ${describeMarkup(m)})`);
 }
 
 function merge(layers) {
@@ -271,11 +270,11 @@ function checkInlineStyle(style, line, label, add, tokens) {
     if (colon === -1) continue;
     const prop = decl.slice(0, colon).trim().toLowerCase(), value = decl.slice(colon + 1).trim();
     const shown = `${prop}: ${value.length > 60 ? value.slice(0, 57) + '…' : value}`;
-    if (COLOR.test(value)) add('raw-color', line, label, `${label}: style="${shown}" — use a design-system token`);
+    if (COLOR.test(value)) add('raw-color', line, label, `${label} ${shown}`);
     else if (prop.startsWith('--')) {
-      if (tokens.has(prop)) add('inline-style', line, label, `${label}: style="${shown}" overrides a design-system token for one element`);
+      if (tokens.has(prop)) add('inline-style', line, label, `${label} ${shown} (overrides a design-system token)`);
     } else if (VISUAL_PROP.test(prop) && !tokensOnly(value, tokens)) {
-      add('inline-style', line, label, `${label}: style="${shown}" — use a design-system token (var(--…)), the design system's classes, or a .pk-* layout primitive`);
+      add('inline-style', line, label, `${label} ${shown}`);
     }
   }
 }
@@ -296,16 +295,49 @@ function words(v) {
   return (v || '').split(/\s+/).filter(Boolean);
 }
 
-export function printLintDs(result, { ok, info, fail, warn }) {
-  for (const v of result.violations) fail(`line ${v.line}  [${v.rule}]  ${v.message}`);
-  if (result.allowed.length) {
-    info(`allowed by build.config.json (${result.allowed.length}):`);
-    for (const v of result.allowed) info(`  line ${v.line}  [${v.rule}]  ${v.target} — ${v.reason}`);
+const EXAMPLES = 10, CLASS_NAMES = 30;
+
+// Grouped by rule, largest first: one header per rule with its fix, then up to 10 examples
+// (--all for every one).
+export function printLintDs(result, { all = false } = {}) {
+  const out = (m) => console.log(m);
+  const groups = new Map();
+  for (const v of result.violations) {
+    if (!groups.has(v.rule)) groups.set(v.rule, []);
+    groups.get(v.rule).push(v);
   }
-  for (const x of result.unusedAllow) warn(`allow entry matches nothing: ${x.rule} ${x.target} — remove it`);
+  for (const [rule, list] of [...groups].sort((x, y) => y[1].length - x[1].length)) {
+    const [what, fix] = RULES[rule];
+    out(`  FAIL  ${rule} (${list.length}): ${what} — ${fix}`);
+    if (rule === 'unknown-class') {
+      const sorted = [...list].sort((x, y) => y.count - x.count || x.target.localeCompare(y.target));
+      const shown = all ? sorted : sorted.slice(0, CLASS_NAMES);
+      out(`          ${shown.map((v) => v.message).join(', ')}${sorted.length > shown.length ? ` … and ${sorted.length - shown.length} more (--all)` : ''}`);
+      continue;
+    }
+    // identical messages collapse into one line with their line numbers
+    const byMessage = new Map();
+    for (const v of list) {
+      if (!byMessage.has(v.message)) byMessage.set(v.message, []);
+      byMessage.get(v.message).push(v.line);
+    }
+    const entries = [...byMessage];
+    const shown = all ? entries : entries.slice(0, EXAMPLES);
+    for (const [message, lines] of shown) {
+      const at = lines.length === 1 ? `line ${lines[0]}`
+        : `lines ${lines.slice(0, all ? lines.length : 5).join(', ')}${lines.length > 5 && !all ? ', …' : ''} (${lines.length}×)`;
+      out(`          ${at}  ${message}`);
+    }
+    const hidden = entries.slice(shown.length).reduce((n, [, lines]) => n + lines.length, 0);
+    if (hidden) out(`          … and ${hidden} more (--all)`);
+  }
+  if (result.allowed.length) {
+    out(`  info  allowed by build.config.json: ${result.allowed.map((v) => `${v.rule} ${v.target}`).join(', ')}`);
+  }
+  for (const x of result.unusedAllow) out(`  warn  allow entry matches nothing: ${x.rule} ${x.target} — remove it`);
   if (result.ok) {
     const s = result.stats;
-    ok(`design-system lint: ${s.components} tagged components, ${s.screens} screens, ${s.features} features`);
+    console.log(`  ok    ${s.components} tagged components, ${s.screens} screens, ${s.features} features`);
   }
 }
 

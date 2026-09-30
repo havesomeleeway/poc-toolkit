@@ -96,8 +96,8 @@ export function printReport(result) {
     console.log('  ok    offline-safe: no external references');
     return;
   }
-  console.error(`  FAIL  ${result.violations.length} external reference(s):`);
+  console.log(`  FAIL  ${result.violations.length} external reference(s):`);
   for (const v of result.violations) {
-    console.error(`          line ${v.line}  [${v.kind}]  ${v.text.replace(/\s+/g, ' ')}`);
+    console.log(`          line ${v.line}  [${v.kind}]  ${v.text.replace(/\s+/g, ' ')}`);
   }
 }

@@ -5,9 +5,8 @@
 
 import { resolve, dirname, basename, extname } from 'node:path';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
-import { parseArgs, head, ok, warn, info } from './util.mjs';
+import { parseArgs, rel, fetchUrl, head, ok, warn, info } from './util.mjs';
 
-const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36';
 const MIME = { '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf' };
 
 export async function run(argv) {
@@ -35,7 +34,6 @@ export async function run(argv) {
   }
 }
 
-function rel(p) { return p.replace(process.cwd() + '/', ''); }
 
 function isLocalFile(s) {
   return s.startsWith('.') || s.startsWith('/') || Object.keys(MIME).includes(extname(s).toLowerCase());
@@ -94,8 +92,4 @@ async function fromGoogle(family, args) {
   return `/* ${family} — embedded by poc-kit add-font (subset: ${subset}) */\n` + outBlocks.join('\n') + '\n';
 }
 
-async function get(url, as) {
-  const res = await fetch(url, { headers: { 'user-agent': UA } });
-  if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
-  return as === 'buffer' ? res.arrayBuffer() : res.text();
-}
+const get = (url, as) => fetchUrl(url, { as });

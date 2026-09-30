@@ -1,18 +1,17 @@
 // poc-kit add-ds <npm-name | https://…/x.css | ./x.css | --none> [--profile <path | url>]
 //                [--name "Design System"] [--out vendor/ds.css]
-// Acquire a design-system stylesheet for offline use, introspect it, and write its profile:
+// Acquire a design-system stylesheet for offline use and write its profile:
 // either a shared, reviewed profile (--profile) or a draft generated from the CSS.
 
 import { resolve, dirname, basename, relative, isAbsolute } from 'node:path';
 import { mkdirSync, writeFileSync, copyFileSync, readFileSync, existsSync } from 'node:fs';
-import { parseArgs, readConfig, TEMPLATES, PKG_ROOT, head, ok, info, warn, fail } from './util.mjs';
-import { introspectDs } from './introspect-ds.mjs';
-import { draftProfile, validateProfile } from './ds-profile.mjs';
+import { parseArgs, readConfig, rel, fetchUrl, toJson, TEMPLATES, PKG_ROOT, head, ok, info, warn, fail } from './util.mjs';
+import { classSet, customProps } from './css-scan.mjs';
+import { draftProfile, validateProfile, profileClasses } from './ds-profile.mjs';
 
-const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36';
 const NEUTRAL = 'poc-kit:neutral-kit.css';
 const USAGE = 'poc-kit add-ds <npm-name | https://…/x.css | ./x.css | --none> [--profile <path | url>] [--name "Name"] [--out vendor/ds.css]\n'
-  + '  Downloads the stylesheet into vendor/, writes vendor/ds-report.md and vendor/ds-profile.json.\n'
+  + '  Downloads the stylesheet into vendor/ and writes vendor/ds-profile.json.\n'
   + '  --profile  use a shared, reviewed profile instead of drafting one. With no stylesheet argument,\n'
   + '             the stylesheet named in the profile is fetched, so both always match.';
 
@@ -24,7 +23,6 @@ export async function run(argv) {
   }
   const outCss = resolve(process.cwd(), args.out || 'vendor/ds.css');
   const outDir = dirname(outCss);
-  const outReport = resolve(outDir, 'ds-report.md');
   const outProfile = resolve(outDir, 'ds-profile.json');
   mkdirSync(outDir, { recursive: true });
 
@@ -74,9 +72,8 @@ export async function run(argv) {
     ok(`${bytes(css)} from ${source} -> ${rel(outCss)}`);
   }
 
-  const { markdown, stats } = introspectDs(css, { source, bytes: css.length });
-  writeFileSync(outReport, markdown);
-  ok(`introspected: ${stats.classes} classes, ${stats.customProps} custom properties -> ${rel(outReport)}`);
+  const classCount = classSet(css).size;
+  ok(`${classCount} classes, ${customProps(css).size} custom properties`);
 
   // --- profile ------------------------------------------------------------------------------------
   let profile;
@@ -104,7 +101,7 @@ export async function run(argv) {
       generatedBy: `poc-kit add-ds ${version}`,
     });
   }
-  writeFileSync(outProfile, JSON.stringify(profile, null, 2) + '\n');
+  writeFileSync(outProfile, toJson(profile) + '\n');
   ok(`profile: ${profile.components.length} components${profile.reviewed ? '' : ' (DRAFT)'} -> ${rel(outProfile)}`);
 
   const cfgPath = resolve(process.cwd(), 'build.config.json');
@@ -114,23 +111,18 @@ export async function run(argv) {
     writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
   }
 
-  info('');
   // Utility-first design systems (Tailwind-based, e.g. component libraries shipped as React) keep
   // their components in code, not in the CSS, so a draft can't find them.
-  if (!shared && spec !== NEUTRAL && stats.classes >= 200 && (profile.utilities || []).length / stats.classes > 0.9) {
-    warn(`${stats.classes} classes, almost all utilities (Tailwind-style). This design system's components`);
-    info('      live in its component library, not its CSS, so the draft cannot find them. Write the');
-    info('      profile from the library instead: one entry per component, with the classes its markup');
-    info('      uses (see the library\'s docs or source), then share it and use add-ds --profile.');
+  const componentClasses = profileClasses({ ...profile, utilities: [] }).length;
+  if (!shared && spec !== NEUTRAL && classCount >= 200 && 1 - componentClasses / classCount > 0.9) {
+    warn('almost all utility classes (Tailwind-style): the components live in the component library, not');
+    info('      the CSS, so the draft can\'t find them. Write the profile from the library\'s docs or source.');
   }
   if (!profile.reviewed) {
-    warn(`${rel(outProfile)} is a draft guessed from the CSS. Review it once for this design system:`);
-    info('      rename components to the design system\'s own names, fix variants/states/parts,');
-    info('      add docs links, then set "reviewed": true and keep it somewhere shared.');
-    info('      Next time: poc-kit add-ds --profile <that file or URL>');
+    warn('draft profile: review it once (names, variants, states, parts, docs links), set "reviewed": true,');
+    info('      share it, and next time use add-ds --profile <file | URL>.');
   }
-  info('List components:    poc-kit ds list');
-  info('Look one up:        poc-kit ds lookup <Component>');
+  info('next: poc-kit ds list · poc-kit ds lookup <Component> · poc-kit ds search <text>');
 }
 
 async function loadProfile(where) {
@@ -157,14 +149,9 @@ function isLocalPath(s) {
   return s.startsWith('.') || s.startsWith('/') || /^[A-Za-z]:[\\/]/.test(s) || (s.endsWith('.css') && existsSync(resolve(process.cwd(), s)));
 }
 
-function rel(p) { return p.replace(process.cwd() + '/', ''); }
 function bytes(s) { return `${(Buffer.byteLength(s) / 1024).toFixed(1)} KB`; }
 
-async function fetchText(url, accept = 'text/css,*/*') {
-  const res = await fetch(url, { headers: { 'user-agent': UA, accept } });
-  if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
-  return res.text();
-}
+const fetchText = (url, accept = 'text/css,*/*') => fetchUrl(url, { accept });
 
 // Resolve "pkg", "pkg@1.2.3", "@scope/pkg", "@scope/pkg@1/dist/x.css" to a jsDelivr URL.
 async function resolveNpmCss(spec) {

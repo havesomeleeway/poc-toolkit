@@ -53,7 +53,8 @@ they're needed to avoid context rot; ship templates and flows, not just componen
 | 0 | Tests, lint, CI, hooks (**done**) | Medium | — |
 | 1 | Design-system profile + lookup (**done**) | Medium | 0 |
 | 2 | Component tagging + linter (**done**) | Medium | 1 |
-| 3 | `spec.json` + schema | Large | 2 |
+| 0b | Trim bloat before adding code | Medium | 2 |
+| 3 | `spec.json` + schema | Large | 0b |
 | 4 | Behaviours from `flow.json` | Small | 3 |
 | 5 | Mapping file | Medium | 1, 3 |
 | 6 | Handoff bundle | Medium | 3, 4, 5 |
@@ -66,33 +67,70 @@ they're needed to avoid context rot; ship templates and flows, not just componen
 R1 blocks only step 9 (R1 decides whether screen templates are compositions). Steps 3 and 6b gain
 a composition node kind when R1 lands (an addition, with a `specVersion` bump); step 8 may need an
 exception for composition styling. Order: 3 → 4 → 5 → 6 → 6b → 7 now; R1 before 8 and 9.
-| — | Docs updates | Small | alongside each step |
-
-**First milestone:** steps 1 to 3. That fixes most of the drift and gives developers a real spec.
+Docs are updated alongside each step.
 
 ---
 
-## Step 0: Tests, lint, CI and hooks (done)
+## Done (steps 0, 1, 2)
 
-Before this step the only automated check was `node --check` (does each file parse), and it only
-ran at publish time.
+- **Step 0 — checks.** Unit tests (`node:test`) and browser end-to-end tests (`POC_KIT_REQUIRE_CHROME=1`
+  so CI can't pass without Chrome); ESLint; `check:docs` (CLI and docs agree), `check:pack`
+  (runtime files are published), `check:version` (user-facing changes bump the version); CI on
+  every PR plus a Node 18 load check; a Claude Code hook running lint, tests and the docs check
+  after each edit.
+- **Step 1 — design-system profile.** `add-ds` writes `vendor/ds-profile.json`: a draft from the CSS
+  (`"reviewed": false`), or a shared reviewed profile via `--profile`, which also fetches the exact
+  stylesheet it names and is refused if it names classes or tokens the CSS lacks. A component is
+  described by markup (`{ element?, classes?, attributes? }`), as are its variants, states and
+  parts, so class-based, BEM and classless design systems all fit. `poc-kit ds list | lookup |
+  search | validate`. The neutral kit ships a reviewed profile. Drafts are close for Pico, usable
+  with noise for Bootstrap and Carbon, and nearly empty for utility-first systems like Kumo (which
+  `add-ds` now says).
+- **Step 2 — tagging and the linter.** Tags: `data-screen`, `data-component` (+ `data-variant`,
+  `data-state`, `data-part`), a stable `data-id`, `data-feature` (declared in a `poc-features`
+  block), `data-mock`. `build` runs `lint-ds.mjs` on the source and fails on drift; reasoned
+  exceptions go in `build.config.json` `"allow"`. The scaffold is tagged; a tagged sample dashboard
+  lives in `cli/test/fixtures/sample/`. Limit: markup created by scripts at runtime isn't checked
+  until step 3 walks the rendered page.
+- **Fixed along the way:** a Chrome port race that let parallel `verify` runs drive each other's
+  page; escaped Tailwind class names read short; local custom properties and token-only inline
+  values wrongly rejected.
+- **Known, not fixed:** the offline linter flags a citation URL in visible text (a `todo` test);
+  `parseArgs` has no list of boolean flags, so `verify --quiet prototype.html` swallows the filename.
 
-What now exists:
-- **Unit tests** (`cli/test/unit/`, `node:test`): offline linter, design-system introspection, arg
-  parsing, config loading, flow schema, and every command run as a real process (no Chrome).
-- **End-to-end test** (`cli/test/e2e/`): `init → add-ds --none → build → verify` in a real browser.
-  `POC_KIT_REQUIRE_CHROME=1` makes a `DEGRADED` run fail, so CI can't pass without the browser.
-- **ESLint** (dev dependency only).
-- **`check:docs`**: the CLI and the docs agree (it caught `poc-kit query` missing from the README).
-- **`check:pack`**: every runtime file is in the npm package.
-- **`check:version`**: a PR that changes what users get must bump the version.
-- **CI on every PR** (`.github/workflows/ci.yml`), plus a Node 18 load check.
-- **Claude Code hook** (`.claude/settings.json`): lint, unit tests and docs check after each edit.
+## Step 0b: Trim bloat before adding code
 
-Known issues found while writing tests, not fixed yet:
-- The offline linter flags a citation URL in visible text (recorded as a `todo` test).
-- `parseArgs` has no list of boolean flags, so `verify --quiet prototype.html` reads the filename
-  as the value of `--quiet`.
+A review of everything built so far, measured on Bootstrap, Pico, Carbon, Kumo and the sample
+(tokens = characters ÷ 4, an estimate).
+
+| # | Bloat | Measured | Fix | Target |
+|---|---|---|---|---|
+| 1 | Lint output: one line per problem, same hint on every line | hkex_2 build ≈ 280 lines, ~11,000 tokens | Group by rule, counts summary, hint once, ≤ 10 examples per rule, `--all` for everything; unknown classes on one line | many-violation fixture ≤ 1,500 tokens |
+| 2 | `verify` prints every passing step unless `$CI`; agents run without a terminal | sample 444 vs 74 tokens | Quiet when not a terminal, `--verbose` to force; no empty section headers | sample ≤ 100 tokens |
+| 3 | `ds lookup` repeats variants as example lines and lists component internals | Bootstrap `Btn` ~1,030 tokens | One example line; tokens with `--tokens`. `ds list`: names only, `--detail` for markup and variants | `Btn` ≤ 300; Carbon list ≤ 600 |
+| 4 | Draft profiles store every leftover class and token | Carbon draft ~64,500 tokens | Drafts say `"utilities": "all"`, `"tokens": "all"` (whatever the stylesheet defines); no per-component token lists in drafts | Carbon draft ≤ 20,000 |
+| 5 | `vendor/ds-report.md` repeats the profile | 5,600–21,000 tokens | Drop it and `introspect-ds.mjs`; add `ds search <text>` for classes, tokens and components | — |
+| 6 | Method steps in 4 places, tagging rules in 4; stale "grep the CSS" advice in `consistency.md`; step types repeated in `verification.md` | — | Claude skill points at METHOD instead of restating it; the Copilot prompt (its user may not have METHOD) stays self-contained but short; tagging rules live in METHOD §5 and the scaffold comment only; fix the stale references | skill + references ≥ ⅓ smaller |
+| 7 | `rel()` in 5 modules, fetch helper in 2, test helpers in 4 files | — | `util.mjs` and `test/helpers.mjs` | — |
+| 8 | `docs/PLAN.md` carries full detail of finished steps | 520 lines | Short "done" summaries | — |
+
+Each measured target gets a test where it can.
+
+**Status: done.** Measured after the fixes:
+
+| # | Result | Test |
+|---|---|---|
+| 1 | ~350-problem fixture: ~520 tokens (identical messages also collapse into one line: 50 untagged buttons → 1 line) | `budgets.test.mjs` (≤ 1,500) |
+| 2 | Sample `verify` without a terminal prints only the tally | `e2e/sample.test.mjs` (≤ 100) |
+| 3 | Bootstrap `Btn` lookup ~220 tokens; Carbon `ds list` ~570 | `budgets.test.mjs` (20-variant lookup ≤ 300) |
+| 4 | Drafts no longer grow with utility classes or tokens, and small objects sit on one line: Kumo ~9,900 → ~420 tokens, Bootstrap ~26,000 → ~5,700, Carbon ~64,500 → ~21,800 (**target 20,000 missed by ~9%**: what's left is 168 real component entries) | `budgets.test.mjs` |
+| 5 | `ds-report.md` and `introspect-ds.mjs` removed; `ds search` added | `ds-cmd.test.mjs` |
+| 6 | Skill rewritten as a pointer to METHOD (59 → 38 lines); `verification.md` 63 → 30; stale advice in `consistency.md` replaced; tagging rules now in METHOD §5 and the scaffold comment only; METHOD §4–5 shorter | `check:docs` |
+| 7 | `rel`, `fetchUrl`, `toJson` in `util.mjs`; `test/helpers.mjs` | — |
+| 8 | Finished steps summarised under "Done" | — |
+
+Also: all output now goes to stdout in order (failures had been going to stderr and could print
+above their own header when an agent read `2>&1`).
 
 ## Testing rule for every later step
 
@@ -109,111 +147,6 @@ Each step ships with its tests in the same PR:
   change that bloats the output fails CI.
 - **Docs:** new commands go in `cli/README.md`, and in `METHOD.md` + both adapters if they're part
   of the workflow. `check:docs` enforces it.
-
-## Step 1: Design-system profile and lookup
-
-A **design-system profile** is one JSON file per design system that says what the design system
-contains. It is written once, checked by a human, and reused by every project that uses that
-design system. It replaces guessing components from CSS on every run.
-
-`ds-profile.json` contains:
-- `name`, `version`, `package` (npm name or stylesheet URL), `docs` (base docs URL)
-- `components[]`, where each component has:
-  - `name` (the design system's own name, e.g. `Tag`)
-  - `docs` (a link to that component's docs page)
-  - `classes` (root class and part classes)
-  - `variants`, `states`, `tokens` used
-  - `snippet` (a correct example of the markup)
-- `tokens` (the design system's custom properties, grouped)
-
-Tasks:
-1. Write `cli/schema/ds-profile.schema.json`.
-2. Change `cli/src/introspect-ds.mjs` to also write a **draft** `vendor/ds-profile.json`, grouping
-   classes into likely components. Mark it `"reviewed": false`.
-3. Change `add-ds` to accept `--profile <path | url>`, so it uses an existing reviewed profile
-   instead of the draft. Store the chosen profile in `build.config.json`.
-4. Warn loudly in `build` when the profile is still `"reviewed": false`.
-5. New `poc-kit ds lookup <Component> [--json]` (`cli/src/dsLookup.mjs`) that prints one
-   component's entry.
-6. New `poc-kit ds list` that prints component names only.
-7. Register both in `cli/bin/poc-kit.mjs`.
-
-Done when: `poc-kit ds lookup Button --json` returns a useful entry for a real design system and
-for the neutral kit, and `add-ds --profile` reuses a shared profile.
-
-**Status: done.** What was built, and where it differs from the tasks above:
-- A component is described by **markup** — `{ element?, classes?, attributes? }` — and variants,
-  states and parts use the same shape. This was needed because many design systems (Pico, the
-  neutral kit) style elements and attributes, not classes.
-- `add-ds --profile <file | url>` with no stylesheet argument fetches the stylesheet the profile
-  names, so profile and CSS always match. A profile naming a class or token the CSS lacks is
-  refused.
-- `add-ds ./file.css` (a local stylesheet) was added.
-- `poc-kit ds validate [file]` was added, for checking a profile while reviewing it.
-- No separate overrides file: a person edits the draft profile directly and sets `"reviewed": true`.
-- `build` fails on an invalid profile and warns on a draft or missing one.
-- The neutral kit ships a reviewed profile.
-
-How good the drafts are (tried on Bootstrap 5.3, Pico 2, Carbon 11):
-- Pico (classless): close to right. Button, Input with its type variants, Select, Dialog, Details
-  (with its `dropdown` variant) come out correctly.
-- Bootstrap: 96 components. `Btn` is right (19 variants, disabled state, tokens). Some noise:
-  `Display1`…`Display6`, `Sticky*` helpers, `H1`…`H6`.
-- Carbon: 173 components, `cds--` namespace handled. Some noise: `ColSpan1`…`ColSpan16`.
-- Class-based drafts render snippets as `<div>`, because the CSS doesn't say which element
-  `.btn` belongs on. A reviewer sets `element`.
-
-A draft is a starting point for the one-time review, not something to build against blindly.
-
-## Step 2: Component tagging and the linter
-
-The prototype records what each element is, using design-system names from the profile.
-
-Tag convention:
-- `data-screen="checkout"` on each screen
-- `data-component="Button"`, `data-variant="primary"`, `data-state="disabled"` on components
-  (`data-variant` and `data-state` take a space-separated list, e.g. `"primary lg"`)
-- `data-part="body"` on a component's named inner element
-- `data-id="checkout.pay"`, a stable node ID, unique across the prototype
-- `data-feature="export-csv"` on the elements that make up a feature (applies to the subtree).
-  Features are declared once in `<script type="application/json" id="poc-features">` with an `id`,
-  a `title` and optionally the `source` (ticket or requirement line).
-- `data-mock="true"` on mocked values
-
-Stable IDs and features are what make incremental handoffs (step 6b) possible: an element keeps
-its `data-id` across revisions, so a change list can say what was added, removed or changed.
-
-Tasks:
-1. Update `cli/templates/prototype.src.html` to use the tags.
-2. New `cli/src/lint-ds.mjs`, run by `build.mjs` after the offline lint. It fails when:
-   - a class is not in the profile or `layout.css`
-   - `data-component` / `data-variant` names something not in the profile
-   - a widget-like element (button, input, select, link styled as a button, …) has no tag
-   - an inline `style=` sets colour, font or spacing
-   - a raw hex or rgb colour does not match a token
-   - two elements share a `data-id`
-   - a `data-feature` is not declared, or a declared feature is never used
-   - an element tagged with a component does not have that component's markup (wrong element,
-     missing class or attribute, or a class from a variant it doesn't declare)
-3. Exceptions live in `build.config.json` as `"allow": [{ "rule", "target", "reason" }]`. A reason is
-   required. Every allowed exception is printed by `build` and written into the handoff under
-   `gaps`.
-4. Limit: the linter reads the source HTML, so markup that scripts create at runtime is not checked
-   here. Step 3 walks the rendered page and reports untagged components it finds there.
-
-**Status: done.** `cli/src/lint-ds.mjs` (rules listed in `RULES`), run by `build` on the source.
-Also:
-- The `init` scaffold is tagged and passes; it declares an empty `poc-features` block.
-- `cli/test/fixtures/sample/`: a tagged two-screen dashboard with two features, used by the unit
-  and browser tests (and by step 6b later).
-- Inline `style=""` may still set layout (`display`, widths, `--pk-*` settings); only colour, type,
-  spacing, borders and token overrides are rejected.
-- Found and fixed while testing: `verify` picked Chrome's debugging port itself and could collide
-  with another Chrome starting at the same time, so two `verify` runs in parallel could drive each
-  other's page. Chrome now picks its own port.
-
-Done when: an invented class, an untagged button or a hard-coded colour fails `poc-kit build` with
-a clear message.
 
 ## Handoff format: written for machines
 

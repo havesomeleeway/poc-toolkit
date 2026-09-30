@@ -59,12 +59,16 @@ test('dash style: roots, variants, states, parts; utilities are not components',
   assert.deepEqual(btn.states.disabled, { attributes: { disabled: '' } });
   assert.deepEqual(btn.states.loading, { classes: ['is-loading'] });
   assert.deepEqual(comp(p, 'Card').parts, { body: { classes: ['card-body'] } });
-  assert.deepEqual(p.utilities, ['bg-primary', 'border-0', 'text-muted']);
+  const owned = profileClasses({ ...p, utilities: [] });
+  for (const u of ['bg-primary', 'border-0', 'text-muted']) assert.ok(!owned.includes(u), `${u} is a utility`);
 });
 
-test('dash style: component tokens are the custom properties its rules use', () => {
+test('drafts allow every class and token the stylesheet defines, and list no tokens per component', () => {
   const p = draftProfile(DASH);
-  assert.deepEqual(comp(p, 'Btn').tokens, ['--x-primary', '--x-radius']);
+  assert.equal(p.utilities, 'all');
+  assert.equal(p.tokens, 'all');
+  assert.ok(p.components.every((c) => !('tokens' in c)));
+  assert.ok(profileClasses(p, DASH).includes('text-muted'));
 });
 
 test('BEM with a namespace: the namespace is stripped from names, kept in classes', () => {
@@ -90,20 +94,6 @@ test('classless: element components, attribute variants, element-qualified class
   assert.deepEqual(input.variants, { checkbox: { attributes: { type: 'checkbox' } } });
   assert.deepEqual(input.states, { invalid: { attributes: { 'aria-invalid': 'true' } } });
   assert.ok(!comp(p, 'Outline'), '.outline should be a Button variant, not a component');
-});
-
-test('tokens are grouped by what their value is', () => {
-  assert.deepEqual(draftProfile(DASH).tokens, {
-    color: ['--x-primary'],
-    fontFamily: ['--x-font'],
-    radius: ['--x-radius'],
-    space: ['--x-gap'],
-  });
-});
-
-test('var() fallbacks that are never defined are not listed as tokens', () => {
-  const p = draftProfile('.a { color: var(--undefined, red); padding: 1px; margin: 0; }');
-  assert.equal(comp(p, 'A').tokens, undefined);
 });
 
 test('drafting is deterministic', () => {
@@ -214,8 +204,8 @@ test('Tailwind-style classes never become components, parts or variants; the dra
       for (const cls of m.classes || []) assert.match(cls, /^[\w-]+$/, `${c.name} uses ${cls}`);
     }
   }
-  assert.ok(p.utilities.includes('transition-[color]'));
-  assert.ok(p.utilities.includes('hover:bg-red'));
+  assert.ok(profileClasses(p, TAILWIND).includes('transition-[color]'));
+  assert.ok(profileClasses(p, TAILWIND).includes('hover:bg-red'));
   assert.deepEqual(validateProfile(p, { css: TAILWIND }), []);
   assert.ok(schemaValid(p), ajv.errorsText(schemaValid.errors));
 });

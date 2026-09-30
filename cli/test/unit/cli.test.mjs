@@ -1,25 +1,13 @@
 // Runs the real binary in a scratch dir. No network, no Chrome.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { PKG_ROOT } from '../../src/util.mjs';
-
-const BIN = resolve(PKG_ROOT, 'bin', 'poc-kit.mjs');
-
-function pk(cwd, args, env = {}) {
-  const r = spawnSync(process.execPath, [BIN, ...args], {
-    cwd,
-    encoding: 'utf8',
-    env: { ...process.env, CI: '', ...env },
-  });
-  return { code: r.status, out: r.stdout + r.stderr };
-}
+import { BIN, pk, tmp } from '../helpers.mjs';
 
 function scaffold() {
-  const dir = mkdtempSync(join(tmpdir(), 'pk-cli-'));
+  const dir = tmp();
   assert.equal(pk(dir, ['init', '.']).code, 0);
   assert.equal(pk(dir, ['add-ds', '--none']).code, 0);
   return dir;
@@ -40,7 +28,7 @@ test('unknown command exits 1', () => {
 });
 
 test('init writes the scaffold and does not overwrite without --force', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'pk-cli-'));
+  const dir = tmp();
   pk(dir, ['init', '.']);
   for (const f of ['prototype.src.html', 'build.config.json', 'flow.json', 'HANDOFF.md', 'vendor/layout.css']) {
     assert.ok(existsSync(join(dir, f)), `missing ${f}`);
@@ -50,10 +38,11 @@ test('init writes the scaffold and does not overwrite without --force', () => {
   assert.equal(readFileSync(join(dir, 'flow.json'), 'utf8'), 'mine');
 });
 
-test('add-ds --none writes the neutral kit and a report', () => {
+test('add-ds --none writes the neutral kit and its profile, and no report', () => {
   const dir = scaffold();
   assert.ok(existsSync(join(dir, 'vendor/ds.css')));
-  assert.match(readFileSync(join(dir, 'vendor/ds-report.md'), 'utf8'), /# Design system report/);
+  assert.ok(existsSync(join(dir, 'vendor/ds-profile.json')));
+  assert.ok(!existsSync(join(dir, 'vendor/ds-report.md')));
 });
 
 test('build inlines vendor CSS and passes the offline lint', () => {
@@ -75,7 +64,7 @@ test('build fails when the source references the network', () => {
 });
 
 test('build without build.config.json fails clearly', () => {
-  const r = pk(mkdtempSync(join(tmpdir(), 'pk-cli-')), ['build']);
+  const r = pk(tmp(), ['build']);
   assert.equal(r.code, 1);
   assert.match(r.out, /no build.config.json/);
 });
@@ -117,7 +106,7 @@ test('add-font embeds a local font as base64', () => {
 });
 
 test('handoff writes HANDOFF.md and does not overwrite without --force', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'pk-cli-'));
+  const dir = tmp();
   assert.equal(pk(dir, ['handoff']).code, 0);
   assert.ok(existsSync(join(dir, 'HANDOFF.md')));
   assert.match(pk(dir, ['handoff']).out, /exists — skipped/);

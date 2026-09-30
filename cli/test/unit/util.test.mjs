@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseArgs, readConfig } from '../../src/util.mjs';
+import { parseArgs, readConfig, toJson } from '../../src/util.mjs';
 
 test('parseArgs: positionals, --key value, --key=value, --bool', () => {
   assert.deepEqual(
@@ -41,4 +41,12 @@ test('readConfig: invalid JSON throws a clear error', () => {
   const dir = mkdtempSync(join(tmpdir(), 'pk-'));
   writeFileSync(join(dir, 'build.config.json'), '{nope');
   assert.throws(() => readConfig(dir), /build.config.json is not valid JSON/);
+});
+
+test('toJson keeps small objects on one line and round-trips', () => {
+  const v = { name: 'x', components: [{ name: 'Button', markup: { element: 'button' } }], long: 'y'.repeat(100) };
+  const text = toJson(v);
+  assert.deepEqual(JSON.parse(text), v);
+  assert.match(text, /^ {2}"components": \[\{"name":"Button","markup":\{"element":"button"\}\}\],$/m);
+  assert.ok(text.length < JSON.stringify(v, null, 2).length);
 });

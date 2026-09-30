@@ -7,7 +7,7 @@
 // all use it, so class-based (.btn.btn-primary), BEM (.cds--btn--primary) and classless
 // (button[data-variant=secondary]) design systems are described the same way.
 
-import { rules, subject, parseCompound, classSet, customProps, customPropValues, varsUsed, compoundsOf, selectorClasses } from './css-scan.mjs';
+import { rules, subject, parseCompound, classSet, customProps, compoundsOf, selectorClasses } from './css-scan.mjs';
 
 export const PROFILE_VERSION = '0.1';
 
@@ -62,7 +62,6 @@ const VOID = new Set(['input', 'img', 'br', 'hr', 'meta', 'link', 'source', 'col
 
 export function draftProfile(css, { name = 'Unnamed design system', version, stylesheet, docs, generatedBy } = {}) {
   const allRules = rules(css);
-  const defined = customProps(css);   // var(--x, fallback) can name a property that is never defined
   const classes = [...classSet(css)].sort();
   const ns = namespace(classes);
   const local = (c) => (ns && c.startsWith(ns) ? c.slice(ns.length) : c);
@@ -152,11 +151,8 @@ export function draftProfile(css, { name = 'Unnamed design system', version, sty
       for (const [mod, cls] of b.mods) { addModifier(comp, mod, cls); assigned.add(cls); }
     }
 
-    const tokens = new Set();
     for (const r of allRules) {
-      const related = [rootClass, ...Object.values(comp.variants).flatMap((v) => v.classes || [])];
-      if (!r.selectors.some((s) => related.some((c) => hasClass(s, c)))) continue;
-      for (const t of varsUsed(r.body)) tokens.add(t);
+      if (!r.selectors.some((s) => hasClass(s, rootClass))) continue;
       for (const s of r.selectors) {
         for (const compound of compounds(s)) {
           const p = parseCompound(compound);
@@ -165,7 +161,6 @@ export function draftProfile(css, { name = 'Unnamed design system', version, sty
         }
       }
     }
-    comp.tokens = [...tokens].filter((t) => defined.has(t)).sort();
     components.push(comp);
   }
 
@@ -176,7 +171,7 @@ export function draftProfile(css, { name = 'Unnamed design system', version, sty
       const p = parseCompound(subject(s));
       if (!p.element && p.implied && p.classes.length) p.element = p.implied;
       if (!p.element || !WIDGET_ELEMENTS[p.element]) continue;
-      if (!byElement.has(p.element)) byElement.set(p.element, { decls: 0, compounds: [], tokens: new Set(), classes: new Set() });
+      if (!byElement.has(p.element)) byElement.set(p.element, { decls: 0, compounds: [], classes: new Set() });
       const e = byElement.get(p.element);
       if (p.classes.length) {
         // button.secondary: a class that only ever qualifies this element is one of its variants
@@ -185,7 +180,6 @@ export function draftProfile(css, { name = 'Unnamed design system', version, sty
       }
       e.decls += r.decls;
       e.compounds.push(p);
-      for (const t of varsUsed(r.body)) e.tokens.add(t);
     }
   }
   const taken = new Set(components.map((c) => c.name));
@@ -205,7 +199,6 @@ export function draftProfile(css, { name = 'Unnamed design system', version, sty
       }
     }
     for (const c of e.classes) { comp.variants[local(c)] = { classes: [c] }; assigned.add(c); }
-    comp.tokens = [...e.tokens].filter((t) => defined.has(t)).sort();
     components.push(comp);
     taken.add(compName);
   }
@@ -223,8 +216,9 @@ export function draftProfile(css, { name = 'Unnamed design system', version, sty
     reviewed: false,
     ...(generatedBy ? { generatedBy } : {}),
     components,
-    tokens: groupTokens(customPropValues(css)),
-    utilities: classes.filter((c) => !assigned.has(c)),
+    // A draft allows whatever the stylesheet defines; a reviewer narrows these to explicit lists.
+    tokens: 'all',
+    utilities: 'all',
   };
 }
 
@@ -255,7 +249,6 @@ function tidy(c) {
     if (!Object.keys(c[k]).length) delete c[k];
     else c[k] = Object.fromEntries(Object.entries(c[k]).sort(([a], [b]) => a.localeCompare(b)));
   }
-  if (c.tokens && !c.tokens.length) delete c.tokens;
 }
 
 function dedupeNames(components) {
@@ -280,41 +273,6 @@ function namespace(classes) {
   if (!best || n < classes.length * 0.4) return null;
   if (set.has(best.replace(/-+$/, ''))) return null;
   return best;
-}
-
-// Group custom properties by what their value is (colour, font, radius, shadow, space), falling
-// back to the first word of the name. Groups follow W3C design-token type names where one fits.
-const COLOR_VALUE = /^(#[0-9a-f]{3,8}\b|(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color|color-mix)\(|transparent$|currentcolor$|(white|black|red|green|blue|gray|grey|orange|yellow|purple|pink|teal|navy)$)/i;
-const NAME_GROUPS = [
-  [/(^|-)(font|family|typeface)(-|$)/, 'fontFamily'],
-  [/(^|-)(weight)(-|$)/, 'fontWeight'],
-  [/(^|-)(line-height|leading|letter|tracking)(-|$)/, 'typography'],
-  [/(^|-)(radius|rounded|corner)(-|$)/, 'radius'],
-  [/(^|-)(shadow|elevation)(-|$)/, 'shadow'],
-  [/(^|-)(duration|transition|easing|motion|animation)(-|$)/, 'motion'],
-  [/(^|-)(space|spacing|gap|gutter|padding|margin|inset)(-|$)/, 'space'],
-  [/(^|-)(breakpoint|bp|screen)(-|$)/, 'breakpoint'],
-  [/(^|-)(z|z-index|layer)(-|$)/, 'zIndex'],
-  [/(^|-)(font-size|text-size|size)(-|$)/, 'dimension'],
-];
-
-function tokenGroup(name, value = '') {
-  const n = name.slice(2).toLowerCase();
-  for (const [re, g] of NAME_GROUPS) if (re.test(n) && g !== 'dimension') return g;
-  const v = value.trim();
-  if (COLOR_VALUE.test(v)) return 'color';
-  if (/(^|,\s*)["']?[A-Z][\w -]+["']?\s*,|\b(sans-serif|serif|monospace|system-ui)\b/.test(v)) return 'fontFamily';
-  if (/^-?[\d.]+(px|rem|em)\s+-?[\d.]+(px|rem|em)/.test(v) && /(rgb|#|hsl)/i.test(v)) return 'shadow';
-  if (/^-?[\d.]+(ms|s)$/.test(v)) return 'motion';
-  if (/^-?[\d.]+(px|rem|em|%|vw|vh|ch)?$/.test(v) || /^calc\(/.test(v)) return 'dimension';
-  if (/^var\(/.test(v)) return 'alias';
-  return 'other';
-}
-
-function groupTokens(values) {
-  const groups = {};
-  for (const name of Object.keys(values).sort()) (groups[tokenGroup(name, values[name])] ||= []).push(name);
-  return Object.fromEntries(Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)));
 }
 
 const compounds = compoundsOf;
@@ -378,12 +336,13 @@ export function validateProfile(profile, { css } = {}) {
     for (const k of ['description', 'docs', 'snippet']) if (k in c && typeof c[k] !== 'string') bad(`${at}.${k} must be a string`);
   });
 
-  if ('tokens' in profile) {
-    if (!profile.tokens || typeof profile.tokens !== 'object' || Array.isArray(profile.tokens)) bad('tokens must be an object of groups');
+  if ('tokens' in profile && profile.tokens !== 'all') {
+    if (!profile.tokens || typeof profile.tokens !== 'object' || Array.isArray(profile.tokens)) bad('tokens must be "all" or an object of groups');
     else for (const [g, list] of Object.entries(profile.tokens)) if (!isTokenList(list)) bad(`tokens.${g} must be a list of "--custom-property" names`);
   }
-  if ('utilities' in profile && !(Array.isArray(profile.utilities) && profile.utilities.every((u) => CLASS.test(u)))) {
-    bad('utilities must be a list of class names');
+  if ('utilities' in profile && profile.utilities !== 'all'
+    && !(Array.isArray(profile.utilities) && profile.utilities.every((u) => CLASS.test(u)))) {
+    bad('utilities must be "all" or a list of class names');
   }
 
   if (css !== undefined && !problems.length) {
@@ -412,16 +371,20 @@ function isTokenList(v) {
   return Array.isArray(v) && v.every((t) => typeof t === 'string' && /^--[a-zA-Z0-9_-]+$/.test(t));
 }
 
-export function profileClasses(profile) {
-  const out = new Set(profile.utilities || []);
+// Every class a profile allows. "utilities": "all" means every class the stylesheet defines,
+// so pass `css` for those profiles.
+export function profileClasses(profile, css) {
+  const out = new Set(profile.utilities === 'all' ? (css !== undefined ? classSet(css) : []) : profile.utilities || []);
   for (const c of profile.components || []) {
     for (const m of markups(c)) for (const cls of m.classes || []) out.add(cls);
   }
   return [...out].sort();
 }
 
-export function profileTokens(profile) {
-  const out = new Set(Object.values(profile.tokens || {}).flat());
+export function profileTokens(profile, css) {
+  const out = new Set(profile.tokens === 'all'
+    ? (css !== undefined ? customProps(css) : [])
+    : Object.values(profile.tokens || {}).flat());
   for (const c of profile.components || []) for (const t of c.tokens || []) out.add(t);
   return [...out].sort();
 }

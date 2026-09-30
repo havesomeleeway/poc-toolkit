@@ -58,25 +58,21 @@ poc-kit add-font <family | ./file.woff2>                  # optional
 ```
 
 `add-ds` downloads the real stylesheet into `vendor/` and writes `vendor/ds-profile.json`: the
-design system's **components**, and for each one its markup, variants, states, parts and tokens.
-Do not approximate the design system by eye.
+design system's **components** and how each is marked up. Don't approximate the design system by
+eye.
 
-A **profile is written once per design system and shared.** With `--profile`, `add-ds` uses a
-reviewed profile and fetches the exact stylesheet it describes, and refuses a profile that names
-classes or tokens the stylesheet doesn't have. Without one, it drafts a profile from the CSS. A
-draft is a guess (`"reviewed": false`, and `build` warns): have a person check it once — rename
-components to the design system's own names, fix variants/states/parts, add docs links — set
-`"reviewed": true`, and keep it somewhere every project can reach.
+A **profile is written once per design system and shared.** `--profile` uses a reviewed one and
+fetches the exact stylesheet it describes. Without one, `add-ds` drafts a profile from the CSS
+(`"reviewed": false`; `build` warns): a person checks it once — names, variants, states, parts,
+docs links — sets `"reviewed": true`, and shares it.
 
-**Look components up as you use them** rather than reading everything up front:
+**Look things up as you need them**, not all up front:
 
 ```
-poc-kit ds list                  # every component
-poc-kit ds lookup <Component>    # one component: markup, variants, states, parts, tokens, example
+poc-kit ds list                  # component names
+poc-kit ds lookup <Component>    # one component: markup, variants, states, parts, example
+poc-kit ds search <text>         # components, classes and tokens matching <text>
 ```
-
-`vendor/ds-report.md` is the raw index of every class and custom property, for when the profile
-doesn't cover something.
 
 `add-font` base64-embeds a font so the file stays offline. Skip it to use a system-font stack.
 
@@ -117,13 +113,11 @@ feature ids stable when you change a screen: later handoffs report changes by id
 poc-kit build         # inlines vendor/* -> prototype.html, lints offline, then lints the design system
 ```
 
-`build` **fails** when the source drifts from the design system: a class that isn't in the profile
-or `layout.css`, an untagged control or component, a tag naming a component, variant, state or part
-the profile doesn't have, an element that doesn't have its component's markup, a `style=""` that
-hard-codes colour, type, spacing or borders (token values like `var(--…)` are fine) or overrides a
-design-system token, a hard-coded colour, a missing or duplicate id, or an undeclared
-or unused feature. Fix the markup. When an exception is genuinely right, add it to
-`build.config.json` with a reason — it shows up in every build and in the handoff:
+`build` **fails** when the source drifts from the design system (invented classes, untagged or
+mis-tagged components, hard-coded styles, bad ids, undeclared features). It prints each rule once
+with how to fix it and up to 10 examples; `--all` prints every one. Fix the markup. When an
+exception is genuinely right, add it to `build.config.json` with a reason — it shows in every
+build and in the handoff:
 
 ```json
 "allow": [{ "rule": "unknown-class", "target": "hero-banner", "reason": "marketing banner, not in the DS yet" }]
