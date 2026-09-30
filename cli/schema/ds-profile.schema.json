@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://poc-kit/ds-profile.schema.json",
+  "title": "poc-kit design-system profile",
+  "description": "Which components a design system has and how each is marked up. Written once per design system, reviewed by a person, reused by every project.",
+  "type": "object",
+  "required": ["profileVersion", "name", "reviewed", "components"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "profileVersion": { "const": "0.1" },
+    "name": { "type": "string", "minLength": 1, "description": "The design system's name, e.g. \"Pico CSS\"." },
+    "version": { "type": "string", "description": "The design system version this profile describes." },
+    "stylesheet": { "type": "string", "description": "What add-ds fetches: an npm spec, a CSS URL, or a path relative to this file." },
+    "docs": { "type": "string", "description": "The design system's documentation home." },
+    "reviewed": { "type": "boolean", "description": "false for a generated draft. A person sets true after checking it." },
+    "generatedBy": { "type": "string" },
+    "components": { "type": "array", "items": { "$ref": "#/definitions/component" } },
+    "tokens": {
+      "type": "object",
+      "description": "Custom properties, grouped (e.g. color, space).",
+      "additionalProperties": { "$ref": "#/definitions/tokenList" }
+    },
+    "utilities": {
+      "type": "array",
+      "description": "Classes that are allowed but are not a component (helpers, layout).",
+      "items": { "$ref": "#/definitions/className" }
+    }
+  },
+  "definitions": {
+    "className": { "type": "string", "pattern": "^-?[_a-zA-Z][_a-zA-Z0-9-]*$" },
+    "tokenList": { "type": "array", "items": { "type": "string", "pattern": "^--[a-zA-Z0-9_-]+$" } },
+    "markup": {
+      "type": "object",
+      "description": "How an element is marked up: its element, classes and attributes.",
+      "additionalProperties": false,
+      "properties": {
+        "element": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "classes": { "type": "array", "items": { "$ref": "#/definitions/className" } },
+        "attributes": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "requiredMarkup": {
+      "allOf": [
+        { "$ref": "#/definitions/markup" },
+        {
+          "anyOf": [
+            { "required": ["element"] },
+            { "required": ["classes"], "properties": { "classes": { "minItems": 1 } } },
+            { "required": ["attributes"], "properties": { "attributes": { "minProperties": 1 } } }
+          ]
+        }
+      ]
+    },
+    "markupMap": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-zA-Z0-9][\\w-]*$" }
+    },
+    "component": {
+      "type": "object",
+      "required": ["name", "markup"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*$", "description": "The design system's own name for it, PascalCase." },
+        "description": { "type": "string" },
+        "docs": { "type": "string", "description": "Link to this component's docs page." },
+        "markup": { "$ref": "#/definitions/requiredMarkup" },
+        "variants": {
+          "allOf": [{ "$ref": "#/definitions/markupMap" }],
+          "description": "Variant name -> what it adds to the markup. {} means the default look.",
+          "additionalProperties": { "$ref": "#/definitions/markup" }
+        },
+        "states": {
+          "allOf": [{ "$ref": "#/definitions/markupMap" }],
+          "description": "States the author sets (disabled, invalid, loading…) -> what they add.",
+          "additionalProperties": { "$ref": "#/definitions/requiredMarkup" }
+        },
+        "parts": {
+          "allOf": [{ "$ref": "#/definitions/markupMap" }],
+          "description": "Named inner elements (e.g. a card's body).",
+          "additionalProperties": { "$ref": "#/definitions/requiredMarkup" }
+        },
+        "tokens": { "$ref": "#/definitions/tokenList" },
+        "snippet": { "type": "string", "description": "A correct example of the markup. Generated from markup if absent." }
+      }
+    }
+  }
+}

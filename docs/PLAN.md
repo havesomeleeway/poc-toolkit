@@ -42,7 +42,7 @@ they're needed to avoid context rot; ship templates and flows, not just componen
 | # | Step | Size | Depends on |
 |---|------|------|------------|
 | 0 | Tests, lint, CI, hooks (**done**) | Medium | — |
-| 1 | Design-system profile + lookup | Medium | 0 |
+| 1 | Design-system profile + lookup (**done**) | Medium | 0 |
 | 2 | Component tagging + linter | Medium | 1 |
 | 3 | `spec.json` + schema | Large | 2 |
 | 4 | Behaviours from `flow.json` | Small | 3 |
@@ -123,6 +123,30 @@ Tasks:
 
 Done when: `poc-kit ds lookup Button --json` returns a useful entry for a real design system and
 for the neutral kit, and `add-ds --profile` reuses a shared profile.
+
+**Status: done.** What was built, and where it differs from the tasks above:
+- A component is described by **markup** — `{ element?, classes?, attributes? }` — and variants,
+  states and parts use the same shape. This was needed because many design systems (Pico, the
+  neutral kit) style elements and attributes, not classes.
+- `add-ds --profile <file | url>` with no stylesheet argument fetches the stylesheet the profile
+  names, so profile and CSS always match. A profile naming a class or token the CSS lacks is
+  refused.
+- `add-ds ./file.css` (a local stylesheet) was added.
+- `poc-kit ds validate [file]` was added, for checking a profile while reviewing it.
+- No separate overrides file: a person edits the draft profile directly and sets `"reviewed": true`.
+- `build` fails on an invalid profile and warns on a draft or missing one.
+- The neutral kit ships a reviewed profile.
+
+How good the drafts are (tried on Bootstrap 5.3, Pico 2, Carbon 11):
+- Pico (classless): close to right. Button, Input with its type variants, Select, Dialog, Details
+  (with its `dropdown` variant) come out correctly.
+- Bootstrap: 96 components. `Btn` is right (19 variants, disabled state, tokens). Some noise:
+  `Display1`…`Display6`, `Sticky*` helpers, `H1`…`H6`.
+- Carbon: 173 components, `cds--` namespace handled. Some noise: `ColSpan1`…`ColSpan16`.
+- Class-based drafts render snippets as `<div>`, because the CSS doesn't say which element
+  `.btn` belongs on. A reviewer sets `element`.
+
+A draft is a starting point for the one-time review, not something to build against blindly.
 
 ## Step 2: Component tagging and the linter
 

@@ -1,57 +1,159 @@
-// poc-kit add-ds <npm-name | https://…/x.css | --none> [--out vendor/ds.css]
-// Acquire a design-system stylesheet for offline use, then introspect it.
+// poc-kit add-ds <npm-name | https://…/x.css | ./x.css | --none> [--profile <path | url>]
+//                [--name "Design System"] [--out vendor/ds.css]
+// Acquire a design-system stylesheet for offline use, introspect it, and write its profile:
+// either a shared, reviewed profile (--profile) or a draft generated from the CSS.
 
-import { resolve, dirname } from 'node:path';
-import { mkdirSync, writeFileSync, copyFileSync, readFileSync } from 'node:fs';
-import { parseArgs, TEMPLATES, head, ok, info } from './util.mjs';
+import { resolve, dirname, basename, relative, isAbsolute } from 'node:path';
+import { mkdirSync, writeFileSync, copyFileSync, readFileSync, existsSync } from 'node:fs';
+import { parseArgs, readConfig, TEMPLATES, PKG_ROOT, head, ok, info, warn, fail } from './util.mjs';
 import { introspectDs } from './introspect-ds.mjs';
+import { draftProfile, validateProfile } from './ds-profile.mjs';
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36';
+const NEUTRAL = 'poc-kit:neutral-kit.css';
+const USAGE = 'poc-kit add-ds <npm-name | https://…/x.css | ./x.css | --none> [--profile <path | url>] [--name "Name"] [--out vendor/ds.css]\n'
+  + '  Downloads the stylesheet into vendor/, writes vendor/ds-report.md and vendor/ds-profile.json.\n'
+  + '  --profile  use a shared, reviewed profile instead of drafting one. With no stylesheet argument,\n'
+  + '             the stylesheet named in the profile is fetched, so both always match.';
 
 export async function run(argv) {
   const args = parseArgs(argv);
-  if (args.help || (args._.length === 0 && !args.none)) {
-    console.log('poc-kit add-ds <npm-name | https://…/x.css | --none> [--out vendor/ds.css]');
+  if (args.help || (args._.length === 0 && !args.none && !args.profile)) {
+    console.log(USAGE);
     return;
   }
   const outCss = resolve(process.cwd(), args.out || 'vendor/ds.css');
-  const outReport = resolve(dirname(outCss), 'ds-report.md');
-  mkdirSync(dirname(outCss), { recursive: true });
-
-  const spec = args._[0];
-  let css, source;
+  const outDir = dirname(outCss);
+  const outReport = resolve(outDir, 'ds-report.md');
+  const outProfile = resolve(outDir, 'ds-profile.json');
+  mkdirSync(outDir, { recursive: true });
 
   head('add-ds');
-  if (args.none || spec === '--none') {
+
+  let shared = null;
+  if (args.profile) {
+    shared = await loadProfile(args.profile);
+    ok(`profile ${shared.profile.name}${shared.profile.version ? ` ${shared.profile.version}` : ''} <- ${args.profile}`);
+  }
+
+  let spec = args.none ? NEUTRAL : args._[0];
+  if (!spec && shared) {
+    spec = shared.profile.stylesheet;
+    if (!spec) throw new Error('the profile has no "stylesheet" — pass the stylesheet as well: add-ds <npm | url | ./x.css> --profile …');
+    if (shared.dir && isLocalPath(spec) && !isAbsolute(spec)) spec = resolve(shared.dir, spec);
+  }
+
+  // --- stylesheet -------------------------------------------------------------------------------
+  let css, source, meta;
+  if (spec === NEUTRAL) {
     copyFileSync(resolve(TEMPLATES, 'neutral-kit.css'), outCss);
-    source = 'neutral-kit (no design system)';
     css = readFileSync(outCss, 'utf8');
+    source = 'neutral-kit (no design system)';
+    meta = { name: 'poc-kit neutral kit', stylesheet: NEUTRAL };
     ok(`neutral kit -> ${rel(outCss)}`);
   } else if (/^https?:\/\//.test(spec)) {
     css = await fetchText(spec);
     writeFileSync(outCss, css);
     source = spec;
+    meta = { name: basename(new URL(spec).pathname).replace(/(\.min)?\.css$/, '') || new URL(spec).hostname, stylesheet: spec };
     ok(`${bytes(css)} from URL -> ${rel(outCss)}`);
+  } else if (isLocalPath(spec)) {
+    const from = resolve(process.cwd(), spec);
+    if (!existsSync(from)) throw new Error(`no such file: ${spec}`);
+    css = readFileSync(from, 'utf8');
+    writeFileSync(outCss, css);
+    source = rel(from);
+    meta = { name: basename(from).replace(/(\.min)?\.css$/, ''), stylesheet: relative(outDir, from) };
+    ok(`${bytes(css)} from ${source} -> ${rel(outCss)}`);
   } else {
     const resolved = await resolveNpmCss(spec);
     css = await fetchText(resolved.url);
     writeFileSync(outCss, css);
     source = `npm:${resolved.pkg}@${resolved.version}/${resolved.file}`;
+    meta = { name: resolved.pkg, version: resolved.version, stylesheet: `${resolved.pkg}@${resolved.version}/${resolved.file}` };
     ok(`${bytes(css)} from ${source} -> ${rel(outCss)}`);
   }
 
   const { markdown, stats } = introspectDs(css, { source, bytes: css.length });
   writeFileSync(outReport, markdown);
   ok(`introspected: ${stats.classes} classes, ${stats.customProps} custom properties -> ${rel(outReport)}`);
+
+  // --- profile ------------------------------------------------------------------------------------
+  let profile;
+  if (shared) {
+    profile = shared.profile;
+    const problems = validateProfile(profile, { css });
+    if (problems.length) {
+      for (const p of problems) fail(p);
+      throw new Error(`the profile does not match this stylesheet (${problems.length} problem(s)) — fix the profile or fetch the stylesheet it describes`);
+    }
+    if (profile.version && meta.version && profile.version !== meta.version) {
+      warn(`profile describes ${profile.name} ${profile.version}, but ${meta.version} was fetched`);
+    }
+    if (args._[0] && profile.stylesheet && profile.stylesheet !== meta.stylesheet && !args.none) {
+      warn(`profile names stylesheet "${profile.stylesheet}", but "${meta.stylesheet}" was fetched`);
+    }
+  } else if (spec === NEUTRAL) {
+    profile = JSON.parse(readFileSync(resolve(TEMPLATES, 'neutral-kit.profile.json'), 'utf8'));
+  } else {
+    const version = JSON.parse(readFileSync(resolve(PKG_ROOT, 'package.json'), 'utf8')).version;
+    profile = draftProfile(css, {
+      name: typeof args.name === 'string' ? args.name : meta.name,
+      version: meta.version,
+      stylesheet: meta.stylesheet,
+      generatedBy: `poc-kit add-ds ${version}`,
+    });
+  }
+  writeFileSync(outProfile, JSON.stringify(profile, null, 2) + '\n');
+  ok(`profile: ${profile.components.length} components${profile.reviewed ? '' : ' (DRAFT)'} -> ${rel(outProfile)}`);
+
+  const cfgPath = resolve(process.cwd(), 'build.config.json');
+  const cfg = readConfig();
+  if (cfg) {
+    cfg.profile = relative(process.cwd(), outProfile);
+    writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+  }
+
   info('');
-  info(`Build against the names in ${rel(outReport)} — target selectors that exist.`);
+  if (!profile.reviewed) {
+    warn(`${rel(outProfile)} is a draft guessed from the CSS. Review it once for this design system:`);
+    info('      rename components to the design system\'s own names, fix variants/states/parts,');
+    info('      add docs links, then set "reviewed": true and keep it somewhere shared.');
+    info('      Next time: poc-kit add-ds --profile <that file or URL>');
+  }
+  info('List components:    poc-kit ds list');
+  info('Look one up:        poc-kit ds lookup <Component>');
+}
+
+async function loadProfile(where) {
+  let text, dir = null;
+  if (/^https?:\/\//.test(where)) {
+    text = await fetchText(where, 'application/json,*/*');
+  } else {
+    const p = resolve(process.cwd(), where);
+    if (!existsSync(p)) throw new Error(`no such profile: ${where}`);
+    text = readFileSync(p, 'utf8');
+    dir = dirname(p);
+  }
+  let profile;
+  try { profile = JSON.parse(text); } catch (e) { throw new Error(`profile is not valid JSON: ${e.message}`); }
+  const problems = validateProfile(profile);
+  if (problems.length) {
+    for (const p of problems) fail(p);
+    throw new Error(`invalid profile (${problems.length} problem(s))`);
+  }
+  return { profile, dir };
+}
+
+function isLocalPath(s) {
+  return s.startsWith('.') || s.startsWith('/') || /^[A-Za-z]:[\\/]/.test(s) || (s.endsWith('.css') && existsSync(resolve(process.cwd(), s)));
 }
 
 function rel(p) { return p.replace(process.cwd() + '/', ''); }
 function bytes(s) { return `${(Buffer.byteLength(s) / 1024).toFixed(1)} KB`; }
 
-async function fetchText(url) {
-  const res = await fetch(url, { headers: { 'user-agent': UA, accept: 'text/css,*/*' } });
+async function fetchText(url, accept = 'text/css,*/*') {
+  const res = await fetch(url, { headers: { 'user-agent': UA, accept } });
   if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
   return res.text();
 }

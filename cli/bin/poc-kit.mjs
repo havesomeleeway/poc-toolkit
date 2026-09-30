@@ -9,6 +9,7 @@ const COMMANDS = {
   init:          () => import('../src/initCmd.mjs'),
   'add-ds':      () => import('../src/addDs.mjs'),
   'add-font':    () => import('../src/addFont.mjs'),
+  ds:            () => import('../src/dsCmd.mjs'),
   build:         () => import('../src/build.mjs'),
   verify:        () => import('../src/verify.mjs'),
   query:         () => import('../src/query.mjs'),
@@ -19,7 +20,10 @@ const COMMANDS = {
 const HELP = `poc-kit <command> [options]
 
   init [dir]                       Scaffold a bare structural skeleton (no widgets, no styling).
-  add-ds <npm | url | --none>      Acquire a design system stylesheet offline + introspect it.
+  add-ds <npm | url | --none>      Acquire a design system stylesheet offline + write its profile.
+                                    --profile <file | url> reuses a shared, reviewed profile.
+  ds list | lookup <Component>     Look up the design system one component at a time.
+  ds validate [file]               Check a profile, and that it matches vendor/ds.css.
   add-font <family | ./file>       Embed a font as a base64 @font-face.
   build                            Inline vendor/* into the markers -> prototype.html, then lint offline.
   verify [file] [--flow flow.json] Static checks always; headless-browser drive when Chrome is present.

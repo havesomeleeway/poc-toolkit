@@ -13,7 +13,8 @@ When asked for an interactive demo, POC, pitch prototype, or clickable mockup fr
   requirement, styled with the **real** target design system, logic **mocked** (deterministic,
   labelled illustrative, never fake precision), **verified by driving it** in a headless browser.
 - Use the **`poc-kit`** CLI for the deterministic work:
-  `npx poc-kit init` · `add-ds <npm|url|--none>` · `add-font` · `build` · `verify` · `handoff`.
+  `npx poc-kit init` · `add-ds <npm|url|--none>` (or `--profile <shared profile>`) ·
+  `ds lookup <Component>` · `add-font` · `build` · `verify` · `handoff`.
 - Presume **no features**. Screens, interactions and any export path come from the requirement and
   the user's direction only.
 - **Confirm the slice + screen list** with the user before building. The **actor/persona is the

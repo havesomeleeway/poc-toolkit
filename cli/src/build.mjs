@@ -6,6 +6,7 @@ import { resolve, dirname } from 'node:path';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { parseArgs, readConfig, head, ok, warn, fail } from './util.mjs';
 import { lintOffline, printReport } from './lint-offline.mjs';
+import { validateProfile } from './ds-profile.mjs';
 
 export async function run(argv) {
   const args = parseArgs(argv);
@@ -49,4 +50,24 @@ export async function run(argv) {
     fail('build output is not self-contained — fix the references above');
     process.exit(1);
   }
+
+  head('design-system profile');
+  const profilePath = resolve(process.cwd(), cfg.profile || 'vendor/ds-profile.json');
+  if (!existsSync(profilePath)) {
+    warn('no design-system profile — run "poc-kit add-ds" so components can be looked up and checked');
+    return;
+  }
+  let profile;
+  try { profile = JSON.parse(readFileSync(profilePath, 'utf8')); } catch (e) {
+    fail(`${cfg.profile || 'vendor/ds-profile.json'} is not valid JSON: ${e.message}`);
+    process.exit(1);
+  }
+  const problems = validateProfile(profile);
+  if (problems.length) {
+    for (const p of problems) fail(p);
+    fail('the design-system profile is invalid — run "poc-kit ds validate"');
+    process.exit(1);
+  }
+  if (profile.reviewed) ok(`${profile.name}${profile.version ? ` ${profile.version}` : ''}: ${profile.components.length} components`);
+  else warn(`DRAFT profile (${profile.name}): guessed from the CSS, not reviewed — lookups may be wrong. Review it, set "reviewed": true, and reuse it with add-ds --profile.`);
 }

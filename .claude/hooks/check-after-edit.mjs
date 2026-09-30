@@ -31,7 +31,7 @@ for (const cmd of steps) {
   } catch (e) {
     const out = `${e.stdout || ''}${e.stderr || ''}`.trim().split('\n');
     // node --test prints a lot; keep the failures.
-    const failing = out.filter((l) => /not ok|✖|Error|error|problem|FAIL|  - /.test(l));
+    const failing = out.filter((l) => /not ok|✖|Error|error|problem|FAIL|  - /.test(l) && !/# TODO/.test(l));
     console.error(`check after editing ${rel} failed: ${cmd}\n${(failing.length ? failing : out).slice(0, 40).join('\n')}`);
     process.exit(2);
   }

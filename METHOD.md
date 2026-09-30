@@ -51,14 +51,32 @@ defensible. Do not invent novel interaction patterns for a POC.
 ## 4. Acquire the design system — offline
 
 ```
-poc-kit add-ds <npm-name | https://…/x.css | --none>
-poc-kit add-font <family | ./file.woff2>        # optional
+poc-kit add-ds --profile <shared profile file | URL>      # the design system has a reviewed profile
+poc-kit add-ds <npm-name | https://…/x.css | ./x.css>     # it doesn't yet: a draft is generated
+poc-kit add-ds --none                                     # there genuinely is no design system
+poc-kit add-font <family | ./file.woff2>                  # optional
 ```
 
-`add-ds` downloads the real stylesheet into `vendor/` and writes `vendor/ds-report.md` — the
-actual class names and custom properties. **Build against names that exist in that report.** Do not
-approximate the design system by eye. Use `--none` (the neutral kit) only when there genuinely is
-no design system.
+`add-ds` downloads the real stylesheet into `vendor/` and writes `vendor/ds-profile.json`: the
+design system's **components**, and for each one its markup, variants, states, parts and tokens.
+Do not approximate the design system by eye.
+
+A **profile is written once per design system and shared.** With `--profile`, `add-ds` uses a
+reviewed profile and fetches the exact stylesheet it describes, and refuses a profile that names
+classes or tokens the stylesheet doesn't have. Without one, it drafts a profile from the CSS. A
+draft is a guess (`"reviewed": false`, and `build` warns): have a person check it once — rename
+components to the design system's own names, fix variants/states/parts, add docs links — set
+`"reviewed": true`, and keep it somewhere every project can reach.
+
+**Look components up as you use them** rather than reading everything up front:
+
+```
+poc-kit ds list                  # every component
+poc-kit ds lookup <Component>    # one component: markup, variants, states, parts, tokens, example
+```
+
+`vendor/ds-report.md` is the raw index of every class and custom property, for when the profile
+doesn't cover something.
 
 `add-font` base64-embeds a font so the file stays offline. Skip it to use a system-font stack.
 

@@ -1,0 +1,81 @@
+{
+  "profileVersion": "0.1",
+  "name": "poc-kit neutral kit",
+  "stylesheet": "poc-kit:neutral-kit.css",
+  "reviewed": true,
+  "components": [
+    {
+      "name": "Button",
+      "description": "The one action control. Primary by default; secondary for the lesser action.",
+      "markup": { "element": "button" },
+      "variants": {
+        "primary": {},
+        "secondary": { "attributes": { "data-variant": "secondary" } }
+      },
+      "states": {
+        "disabled": { "attributes": { "disabled": "" } }
+      },
+      "tokens": ["--nk-accent", "--nk-accent-fg", "--nk-border", "--nk-fg", "--nk-radius"]
+    },
+    {
+      "name": "Card",
+      "description": "A bordered group of related content.",
+      "markup": { "classes": ["card"] },
+      "tokens": ["--nk-border", "--nk-radius", "--nk-space"]
+    },
+    {
+      "name": "Label",
+      "description": "Label for a form field. Put it before the field and link it with for=.",
+      "markup": { "element": "label" }
+    },
+    {
+      "name": "Link",
+      "markup": { "element": "a" },
+      "tokens": ["--nk-accent"]
+    },
+    {
+      "name": "Select",
+      "markup": { "element": "select" },
+      "states": {
+        "disabled": { "attributes": { "disabled": "" } }
+      },
+      "tokens": ["--nk-border", "--nk-radius"]
+    },
+    {
+      "name": "Table",
+      "description": "Data table. Header cells are <th>, body cells <td>.",
+      "markup": { "element": "table" },
+      "tokens": ["--nk-border"]
+    },
+    {
+      "name": "TextArea",
+      "markup": { "element": "textarea" },
+      "states": {
+        "disabled": { "attributes": { "disabled": "" } }
+      },
+      "tokens": ["--nk-border", "--nk-radius"]
+    },
+    {
+      "name": "TextField",
+      "description": "Single-line text input.",
+      "markup": { "element": "input", "attributes": { "type": "text" } },
+      "variants": {
+        "text": {},
+        "number": { "attributes": { "type": "number" } },
+        "email": { "attributes": { "type": "email" } },
+        "date": { "attributes": { "type": "date" } }
+      },
+      "states": {
+        "disabled": { "attributes": { "disabled": "" } }
+      },
+      "tokens": ["--nk-border", "--nk-radius"]
+    }
+  ],
+  "tokens": {
+    "color": ["--nk-accent", "--nk-accent-fg", "--nk-bg", "--nk-border", "--nk-fg", "--nk-muted"],
+    "fontFamily": ["--nk-font"],
+    "radius": ["--nk-radius"],
+    "space": ["--nk-space"]
+  },
+  "utilities": ["muted", "screen"]
+}

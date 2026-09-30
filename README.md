@@ -78,7 +78,9 @@ npm install -g poc-kit
 
 # in a new folder for this build:
 poc-kit init .                       # writes the starter files, incl. vendor/layout.css
-poc-kit add-ds @picocss/pico         # an npm package name, a CSS URL, or --none
+poc-kit add-ds @picocss/pico         # an npm package name, a CSS URL or file, or --none
+                                     #   (or --profile <file | URL> to reuse a shared, reviewed profile)
+poc-kit ds lookup Button             # how the design system marks up a component
 poc-kit add-font "Inter"             # optional; puts the font inside the file
 #   ...build the screens the requirement needs, in prototype.src.html...
 poc-kit build                        # combine everything into prototype.html + check it opens offline

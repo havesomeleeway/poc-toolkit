@@ -22,7 +22,11 @@ isn't auto-found. Without one, `verify` runs the static checks and prints `DEGRA
 
 ```
 poc-kit init [dir]                    Scaffold a bare skeleton (screen router + build markers).
-poc-kit add-ds <npm | url | --none>   Acquire a design-system stylesheet offline + introspect it.
+poc-kit add-ds <npm | url | --none>   Acquire a design-system stylesheet offline + write its profile.
+                 [--profile <f | url>] Reuse a shared, reviewed profile instead of drafting one.
+poc-kit ds list                       Every component in the design-system profile.
+poc-kit ds lookup <Component>         One component: markup, variants, states, parts, tokens, example.
+poc-kit ds validate [file]            Check a profile, and that it matches vendor/ds.css.
 poc-kit add-font <family | ./file>    Embed a font as a base64 @font-face.
 poc-kit build                         Inline vendor/* into the markers -> prototype.html, lint offline.
 poc-kit verify [file] [--flow f.json] Static checks always; headless-browser drive when Chrome is present.

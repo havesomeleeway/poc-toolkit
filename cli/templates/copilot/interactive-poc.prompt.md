@@ -18,7 +18,8 @@ direction — presume none of them.** Do not add features I did not ask for.
 
 - The **requirement source** (file path or pasted text).
 - The **purpose, audience and time budget** (e.g. "2-min in-person pitch").
-- The **design system** (npm package name, a CSS URL, or "none").
+- The **design system**: a shared profile (file or URL) if there is one; otherwise an npm package
+  name, a CSS URL or file, or "none".
 
 ## Steps
 
@@ -29,9 +30,10 @@ direction — presume none of them.** Do not add features I did not ask for.
    and why, then **let me choose**.
 3. **Research patterns** for this flow — borrow structure, not styling; note a couple of
    references.
-4. **Acquire the design system:**
-   `npx poc-kit add-ds <npm | url | --none>` then optionally `npx poc-kit add-font "<Family>"`.
-   Build against the class names in `vendor/ds-report.md`.
+4. **Acquire the design system:** `npx poc-kit add-ds --profile <shared profile>` if one exists,
+   else `npx poc-kit add-ds <npm | url | ./x.css | --none>` (this drafts a profile — tell me it
+   needs reviewing); optionally `npx poc-kit add-font "<Family>"`. Look each component up with
+   `npx poc-kit ds lookup <Component>` as you use it (`npx poc-kit ds list` for all).
 5. **Scaffold & build:** `npx poc-kit init .`, fill `prototype.src.html` with only the screens the
    slice needs, then `npx poc-kit build`.
 6. **Mock the logic:** deterministic, inspectable, clearly labelled illustrative, never fake
@@ -51,5 +53,5 @@ direction — presume none of them.** Do not add features I did not ask for.
 
 - Add an export/print path, extra screens, persistence, or any integration the requirement does
   not call for.
-- Approximate the design system by eye instead of using `add-ds`.
+- Approximate the design system by eye instead of using `add-ds` and `ds lookup`.
 - Claim it works from a screenshot — only from a green `poc-kit verify`.

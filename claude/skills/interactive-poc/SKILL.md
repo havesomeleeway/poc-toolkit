@@ -27,8 +27,10 @@ direction — presume none of them.**
 2. **Decide the actor.** If multiple roles are named, work out who operates this screen; give a
    reasoned soft conclusion; **STOP and let the user decide** (`METHOD.md` §2).
 3. **Research patterns** for this flow — structure, not styling; keep references (`§3`).
-4. **Acquire the design system:** `poc-kit add-ds <npm | url | --none>`, optionally
-   `poc-kit add-font …`. Build against the class names in `vendor/ds-report.md` (`§4`).
+4. **Acquire the design system:** `poc-kit add-ds --profile <shared profile>` if one exists, else
+   `poc-kit add-ds <npm | url | ./x.css | --none>` (a draft profile — tell the user it needs
+   reviewing); optionally `poc-kit add-font …`. Look each component up with
+   `poc-kit ds lookup <Component>` as you use it (`poc-kit ds list` for all) (`§4`).
 5. **Scaffold & build:** `poc-kit init .`, fill `prototype.src.html` with only the screens the
    slice needs, then `poc-kit build` (`§5`).
 6. **Mock the logic** — deterministic, inspectable, visibly illustrative, never fake precision
