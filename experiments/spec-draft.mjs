@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Throwaway experiment, not part of the CLI. Reads a tagged prototype source and prints one JSON
 // file describing what is on each screen. Used to test whether a developer can rebuild the UI
-// from it. Usage: node experiments/spec-draft.mjs <prototype.src.html> [flow.json] > spec.json
+// from it. Usage: node experiments/spec-draft.mjs <prototype.src.html> [flow.json] [--screen <name>] > spec.json
+// With --screen only that data-screen is printed, and the flow is left out.
 import { readFileSync } from 'node:fs';
 import { parseAttrs } from '../cli/src/html-scan.mjs';
 import { toJson } from '../cli/src/util.mjs';
@@ -55,13 +56,19 @@ function node(el) {
   return [out];
 }
 
-const [src, flowFile] = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const at = argv.indexOf('--screen');
+const only = at === -1 ? null : argv.splice(at, 2)[1];
+const [src, flowFile] = argv;
 if (!src) { console.error('usage: spec-draft.mjs <prototype.src.html> [flow.json]'); process.exit(1); }
 const html = readFileSync(src, 'utf8');
 const doc = tree(html);
 const find = (el, tag) => el.kids.filter((k) => typeof k !== 'string').flatMap((k) => (k.tag === tag ? [k] : find(k, tag)));
 const body = find(doc, 'body')[0] || doc;
 const features = JSON.parse((/<script[^>]*id="poc-features"[^>]*>([\s\S]*?)<\/script>/.exec(html) || [, '[]'])[1]);
-const out = { screens: body.kids.filter((k) => typeof k !== 'string').flatMap(node), features };
-if (flowFile) out.flow = JSON.parse(readFileSync(flowFile, 'utf8')).steps;
+const pick = (list) => list.flatMap((n) => (n.screen === only ? [n] : pick(n.children || [])));
+let screens = body.kids.filter((k) => typeof k !== 'string').flatMap(node);
+if (only) { screens = pick(screens); if (!screens.length) { console.error(`no data-screen="${only}" found`); process.exit(1); } }
+const out = { screens, features };
+if (flowFile && !only) out.flow = JSON.parse(readFileSync(flowFile, 'utf8')).steps;
 console.log(toJson(out, 110));
