@@ -1,0 +1,114 @@
+{
+  "screens": [
+    {
+      "layout": "wrapper",
+      "children": [
+        {
+          "screen": "overview",
+          "children": [
+            {"tag":"h1","text":"Sales overview"},
+            {"tag":"p","text":"Sample data — illustrative only."},
+            {
+              "layout": "row",
+              "feature": "filter-by-region",
+              "children": [
+                {"component":"Label","id":"overview.region-label","for":"region","text":"Region"},
+                {
+                  "component": "Select",
+                  "id": "overview.region",
+                  "children": [
+                    {"tag":"option","value":"all","text":"All regions"},
+                    {"tag":"option","value":"north","text":"North"},
+                    {"tag":"option","value":"south","text":"South"}
+                  ]
+                }
+              ]
+            },
+            {
+              "layout": "grid",
+              "children": [
+                {
+                  "component": "Card",
+                  "id": "overview.revenue",
+                  "children": [{"tag":"h2","text":"Revenue"},{"tag":"p","mock":true,"text":"about 120k"}]
+                },
+                {
+                  "component": "Card",
+                  "id": "overview.orders",
+                  "children": [{"tag":"h2","text":"Orders"},{"tag":"p","mock":true,"text":"about 900"}]
+                }
+              ]
+            },
+            {
+              "component": "Table",
+              "id": "overview.top-products",
+              "children": [
+                {
+                  "tag": "thead",
+                  "children": [{"tag":"tr","children":[{"tag":"th","text":"Product"},{"tag":"th","text":"Units"}]}]
+                },
+                {"tag":"tbody"}
+              ]
+            },
+            {
+              "layout": "row",
+              "children": [
+                {
+                  "component": "Button",
+                  "id": "overview.details",
+                  "goesTo": "details",
+                  "type": "button",
+                  "text": "See details"
+                },
+                {
+                  "component": "Button",
+                  "id": "overview.export",
+                  "variant": "secondary",
+                  "feature": "export-csv",
+                  "type": "button",
+                  "text": "Export CSV"
+                }
+              ]
+            },
+            {"tag":"p","feature":"export-csv","hidden":true,"text":"Export prepared (sample)."}
+          ]
+        },
+        {
+          "screen": "details",
+          "hidden": true,
+          "children": [
+            {"tag":"h1","text":"Details"},
+            {"tag":"p","text":"Notes for .","children":[{"tag":"span","text":"all regions"}]},
+            {"component":"Label","id":"details.note-label","for":"note","text":"Note"},
+            {"component":"TextField","id":"details.note","type":"text"},
+            {
+              "component": "Button",
+              "id": "details.back",
+              "variant": "secondary",
+              "goesTo": "overview",
+              "type": "button",
+              "text": "Back"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "features": [
+    {"id":"filter-by-region","title":"Filter the dashboard by region","source":"REQ-1"},
+    {"id":"export-csv","title":"Export the product table as CSV","source":"REQ-2"}
+  ],
+  "flow": [
+    {"expectVisible":"[data-screen=overview]"},
+    {"expectText":"#revenue","contains":"120k"},
+    {"setValue":"#region","to":"north"},
+    {"expectText":"#revenue","contains":"70k"},
+    {"click":"#export"},
+    {"expectVisible":"#export-status"},
+    {"click":"[data-id='overview.details']"},
+    {"expectVisible":"[data-screen=details]"},
+    {"expectText":"#details-region","contains":"north"},
+    {"expectNoConsoleErrors":true},
+    {"screenshot":"details"}
+  ]
+}
